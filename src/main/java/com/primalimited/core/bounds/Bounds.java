@@ -59,8 +59,11 @@ public interface Bounds {
         || (other.getMax() >= getMin() && other.getMax() <= getMax());
   }
 
+  public static final Bounds PROBABILITY = Bounds.of(0, 1);
+  public static final Bounds FRACTION = Bounds.of(0, 1);
   public static final Bounds PERCENT = Bounds.of(0, 100);
   public static final Bounds DEGREES = Bounds.of(0, 360);
+  public static final Bounds RADIANS = Bounds.of(0, 2*Math.PI);
   public static final Bounds RGB_8_BIT = Bounds.of(0, 255);
 
   public static Bounds of(double min, double max) {
