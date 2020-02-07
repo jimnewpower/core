@@ -3,13 +3,14 @@ package com.primalimited.core.bounds;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.primalimited.core.dval.Dval;
 
@@ -268,7 +269,7 @@ public class BoundsTest {
     assertEquals(6, merged.get(1).getMax(), 1e-10);
   }
 
-  @Test (expected=IllegalArgumentException.class)
+  @Test
   public void commonWithDisjointBounds() {
     Bounds[] all = new Bounds[] {
       Bounds.of(  0, 10),
@@ -276,59 +277,59 @@ public class BoundsTest {
       Bounds.of(  7,  8),
       Bounds.of(  2,  4)
     };
-    Bounds.common(all);
+    assertThrows(IllegalArgumentException.class, () -> Bounds.common(all));
   }
 
-  @Test (expected=NullPointerException.class)
+  @Test
   public void commonNullArg() {
     Bounds[] all = null;
-    Bounds.common(all);
+    assertThrows(NullPointerException.class, () -> Bounds.common(all));
   }
 
-  @Test (expected=IllegalArgumentException.class)
+  @Test 
   public void commonEmptyArg() {
     Bounds[] all = new Bounds[] {
     };
-    Bounds.common(all);
+    assertThrows(IllegalArgumentException.class, () -> Bounds.common(all));
   }
 
-  @Test (expected=IllegalArgumentException.class)
+  @Test 
   public void dvalMinArg() {
-    Bounds.immutable(Dval.DVAL_DOUBLE, 10);
+    assertThrows(IllegalArgumentException.class, () -> Bounds.immutable(Dval.DVAL_DOUBLE, 10));
   }
 
-  @Test (expected=IllegalArgumentException.class)
+  @Test 
   public void inifiniteMinArg() {
-    Bounds.immutable(Double.POSITIVE_INFINITY, 10);
+    assertThrows(IllegalArgumentException.class, () -> Bounds.immutable(Double.POSITIVE_INFINITY, 10));
   }
 
-  @Test (expected=IllegalArgumentException.class)
+  @Test 
   public void NaN_MinArg() {
-    Bounds.immutable(Double.NaN, 10);
+    assertThrows(IllegalArgumentException.class, () -> Bounds.immutable(Double.NaN, 10));
   }
 
-  @Test (expected=IllegalArgumentException.class)
+  @Test 
   public void dvalMaxArg() {
-    Bounds.immutable(5, Dval.DVAL_DOUBLE);
+    assertThrows(IllegalArgumentException.class, () -> Bounds.immutable(5, Dval.DVAL_DOUBLE));
   }
 
-  @Test (expected=IllegalArgumentException.class)
+  @Test 
   public void inifiniteMaxArg() {
-    Bounds.immutable(5, Double.POSITIVE_INFINITY);
+    assertThrows(IllegalArgumentException.class, () -> Bounds.immutable(5, Double.POSITIVE_INFINITY));
   }
 
-  @Test (expected=IllegalArgumentException.class)
+  @Test 
   public void NaN_MaxArg() {
-    Bounds.immutable(5, Double.NaN);
+    assertThrows(IllegalArgumentException.class, () -> Bounds.immutable(5, Double.NaN));
   }
 
-  @Test (expected=IllegalArgumentException.class)
+  @Test 
   public void minGreaterThanMaxArg() {
-    Bounds.immutable(5, 0);
+    assertThrows(IllegalArgumentException.class, () -> Bounds.immutable(5, 0));
   }
 
-  @Test (expected=IllegalArgumentException.class)
+  @Test 
   public void createFromNullBoundsObject() {
-    ImmutableBounds.of(new NullBounds());
+    assertThrows(IllegalArgumentException.class, () -> ImmutableBounds.of(new NullBounds()));
   }
 }
