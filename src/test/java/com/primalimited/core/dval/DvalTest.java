@@ -1,11 +1,14 @@
 package com.primalimited.core.dval;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
 
 public class DvalTest {
   @Test public void testDouble() {
@@ -41,9 +44,9 @@ public class DvalTest {
     assertTrue(Dval.allValuesAreDval(allDval));
   }
   
-  @Test (expected=NullPointerException.class)
+  @Test
   public void testHasAnyNonDvalWithNull() {
-    assertFalse(Dval.hasAnyNonDval((double[])null));
+    assertThrows(NullPointerException.class, () -> Dval.hasAnyNonDval((double[])null), () -> "");
   }
   
   @Test
