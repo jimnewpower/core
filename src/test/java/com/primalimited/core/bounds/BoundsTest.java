@@ -3,6 +3,7 @@ package com.primalimited.core.bounds;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -16,10 +17,45 @@ import com.primalimited.core.dval.Dval;
 
 public class BoundsTest {
   @Test
+  public void constants() {
+    double delta = 1e-10;
+    
+    assertEquals(0, Bounds.PROBABILITY.getMin(), delta);
+    assertEquals(1, Bounds.PROBABILITY.getMax(), delta);
+
+    assertEquals(0, Bounds.FRACTION.getMin(), delta);
+    assertEquals(1, Bounds.FRACTION.getMax(), delta);
+
+    assertEquals(0, Bounds.PERCENT.getMin(), delta);
+    assertEquals(100, Bounds.PERCENT.getMax(), delta);
+
+    assertEquals(0, Bounds.RADIANS.getMin(), delta);
+    assertEquals(2 * Math.PI, Bounds.RADIANS.getMax(), delta);
+
+    assertEquals(0, Bounds.DEGREES.getMin(), delta);
+    assertEquals(360, Bounds.DEGREES.getMax(), delta);
+
+    assertEquals(0, Bounds.LATITUDE.getMin(), delta);
+    assertEquals(90, Bounds.LATITUDE.getMax(), delta);
+
+    assertEquals(0, Bounds.LONGITUDE.getMin(), delta);
+    assertEquals(180, Bounds.LONGITUDE.getMax(), delta);
+
+    assertEquals(0, Bounds.RGB_8_BIT.getMin(), delta);
+    assertEquals(255, Bounds.RGB_8_BIT.getMax(), delta);
+  }
+  
+  @Test
   public void boundValue() {
     Bounds bounds = Bounds.of(8, 16);
     assertEquals(8, bounds.bound(2), 1e-10);
     assertEquals(16, bounds.bound(20), 1e-10);
+  }
+
+  @Test
+  public void zeroRangeOnInvalid() {
+    Bounds bounds = Bounds.nullBounds();
+    assertFalse(bounds.rangeIsZero());
   }
 
   @Test
@@ -77,6 +113,119 @@ public class BoundsTest {
     expanded = Bounds.expand(orig, new double[] { -1, -1 });
     assertEquals(-1, expanded.getMin(), 1e-10);
     assertEquals(1, expanded.getMax(), 1e-10);
+  }
+
+  @Test
+  public void expandByPositivePercent() {
+    Bounds original = Bounds.of(0, 1);
+    double percent = 10;
+    Bounds expanded = Bounds.expandByPercent(original, percent);
+    assertNotNull(expanded);
+    assertTrue(expanded.isValid());
+    assertEquals(-0.05, expanded.getMin(), 1e-10);
+    assertEquals(1.05, expanded.getMax(), 1e-10);
+
+    original = Bounds.DEGREES;
+    percent = 20;
+    expanded = Bounds.expandByPercent(original, percent);
+    assertNotNull(expanded);
+    assertTrue(expanded.isValid());
+    assertEquals(-36, expanded.getMin(), 1e-10);
+    assertEquals(396, expanded.getMax(), 1e-10);
+  }
+
+  @Test
+  public void expandByNegativePercent() {
+    Bounds original = Bounds.of(0, 1);
+    double percent = -10;
+    Bounds expanded = Bounds.expandByPercent(original, percent);
+    assertNotNull(expanded);
+    assertTrue(expanded.isValid());
+    assertEquals(0.05, expanded.getMin(), 1e-10);
+    assertEquals(0.95, expanded.getMax(), 1e-10);
+    
+    original = Bounds.RGB_8_BIT;
+    percent = -15;
+    expanded = Bounds.expandByPercent(original, percent);
+    assertNotNull(expanded);
+    assertTrue(expanded.isValid());
+    assertEquals(19.125, expanded.getMin(), 1e-10);
+    assertEquals(235.875, expanded.getMax(), 1e-10);
+  }
+
+  @Test
+  public void expandByInvalidPercent() {
+    Bounds original = Bounds.of(0, 1);
+    double percent = 938457;
+    Bounds expanded = Bounds.expandByPercent(original, percent);
+    assertNotNull(expanded);
+    assertTrue(expanded.isValid());
+    assertEquals(original.getMin(), expanded.getMin(), 1e-10);
+    assertEquals(original.getMax(), expanded.getMax(), 1e-10);
+  }
+
+  @Test
+  public void minMaxOverlapping() {
+    Bounds bounds0 = Bounds.of(0, 10);
+    Bounds bounds1 = Bounds.of(5, 12);
+    
+    Bounds minMax = Bounds.minMax(bounds0, bounds1);
+    assertEquals(0, minMax.getMin(), 1e-10);
+    assertEquals(12, minMax.getMax(), 1e-10);
+    
+    minMax = Bounds.minMax(bounds1, bounds0);
+    assertEquals(0, minMax.getMin(), 1e-10);
+    assertEquals(12, minMax.getMax(), 1e-10);
+  }
+
+  @Test
+  public void minMaxDisjoint() {
+    Bounds bounds0 = Bounds.of(0, 10);
+    Bounds bounds1 = Bounds.of(15, 20);
+    
+    Bounds minMax = Bounds.minMax(bounds0, bounds1);
+    assertEquals(0, minMax.getMin(), 1e-10);
+    assertEquals(20, minMax.getMax(), 1e-10);
+    
+    minMax = Bounds.minMax(bounds1, bounds0);
+    assertEquals(0, minMax.getMin(), 1e-10);
+    assertEquals(20, minMax.getMax(), 1e-10);
+  }
+
+  @Test
+  public void minMaxNullArg0() {
+    Bounds bounds0 = null;
+    Bounds bounds1 = Bounds.of(15, 20);
+    
+    assertThrows(NullPointerException.class, 
+        () -> Bounds.minMax(bounds0, bounds1));
+  }
+
+  @Test
+  public void minMaxNullArg1() {
+    Bounds bounds0 = Bounds.PERCENT;
+    Bounds bounds1 = null;
+    
+    assertThrows(NullPointerException.class, 
+        () -> Bounds.minMax(bounds0, bounds1));
+  }
+
+  @Test
+  public void minMaxInvalidArg0() {
+    Bounds bounds0 = Bounds.nullBounds();
+    Bounds bounds1 = Bounds.of(15, 20);
+    
+    assertThrows(IllegalArgumentException.class, 
+        () -> Bounds.minMax(bounds0, bounds1));
+  }
+
+  @Test
+  public void minMaxInvalidArg1() {
+    Bounds bounds0 = Bounds.DEGREES;
+    Bounds bounds1 = Bounds.empty();
+    
+    assertThrows(IllegalArgumentException.class, 
+        () -> Bounds.minMax(bounds0, bounds1));
   }
 
   @Test
@@ -157,6 +306,45 @@ public class BoundsTest {
   }
 
   @Test
+  public void validForLogScale() {
+    assertTrue(Bounds.of(1, 10).isValidForLogScale());
+    assertFalse(Bounds.of(0, 10).isValidForLogScale());
+  }
+  
+  @Test
+  public void isNull() {
+    assertTrue(Bounds.nullBounds().isNull());
+    assertFalse(Bounds.DEGREES.isNull());
+  }
+  
+  @Test
+  public void boundInts() {
+    assertEquals(Bounds.PERCENT.getMin(), Bounds.PERCENT.bound(-32));
+    assertEquals(Bounds.PERCENT.getMax(), Bounds.PERCENT.bound(125));
+  }
+
+  @Test
+  public void boundDoubles() {
+    assertEquals(Bounds.FRACTION.getMin(), Bounds.FRACTION.bound(-0.234523));
+    assertEquals(Bounds.FRACTION.getMax(), Bounds.FRACTION.bound(1.29834));
+  }
+
+  @Test
+  public void expandToImmutableShouldThrow() {
+    assertThrows(IllegalStateException.class, () -> Bounds.FRACTION.expandTo(1.2345));
+  }
+  
+  @Test
+  public void getBinInvalidBin() {
+    assertEquals(-1, Bounds.FRACTION.getBin(-1, 10/* nBins */));
+  }
+
+  @Test
+  public void getBinInvalidNBins() {
+    assertEquals(-1, Bounds.FRACTION.getBin(1, Dval.DVAL_INT/* nBins */));
+  }
+
+  @Test
   public void intervalsAndBins() {
     int nBins = 3;
     Bounds bounds = Bounds.of(0, 3000);
@@ -187,6 +375,23 @@ public class BoundsTest {
     bounds = Bounds.of(20.0, 80.0);
     assertEquals(0, bounds.getBin(20.0, 60/*nBins*/));
     assertEquals(59, bounds.getBin(80.0, 60/*nBins*/));
+  }
+
+  @Test
+  public void overlapsInvalidThis() {
+    assertFalse(Bounds.nullBounds().overlaps(Bounds.FRACTION));
+  }
+
+  @Test
+  public void overlapsInvalidOther() {
+    assertFalse(Bounds.PERCENT.overlaps(Bounds.empty()));
+  }
+
+  @Test
+  public void overlapsNullOtherArgThrows() {
+    Bounds other = null;
+    assertThrows(NullPointerException.class,
+        () -> Bounds.PERCENT.overlaps(other));
   }
 
   @Test

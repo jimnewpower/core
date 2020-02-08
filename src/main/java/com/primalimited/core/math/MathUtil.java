@@ -10,7 +10,7 @@ public class MathUtil {
 
     if (a == b) { // shortcut, handles infinities
       return true;
-    } else if (a == 0 || b == 0 || (absA + absB < Float.MIN_NORMAL)) {
+    } else if (a == 0f || b == 0f || (absA + absB < Float.MIN_NORMAL)) {
       // a or b is zero or both are extremely close to it
       // relative error is less meaningful here
       return diff < (epsilon * Float.MIN_NORMAL);
@@ -24,6 +24,11 @@ public class MathUtil {
   }
   
   public static boolean doublesEqual(double a, double b, double epsilon) {
+    if (Double.isNaN(a))
+      throw new IllegalArgumentException("a is not a number (NaN)");
+    if (Double.isNaN(b))
+      throw new IllegalArgumentException("b is not a number (NaN)");
+    
     final double absA = Math.abs(a);
     final double absB = Math.abs(b);
     final double diff = Math.abs(a - b);

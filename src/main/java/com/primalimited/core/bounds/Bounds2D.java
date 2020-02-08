@@ -1,11 +1,12 @@
 package com.primalimited.core.bounds;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 import com.primalimited.core.dval.Dval;
 import com.primalimited.core.geometry.Coordinate;
-import com.primalimited.core.math.MathUtil;
 
 /**
  * Aerial, or spatial bounds (e.g. a rectangle).
@@ -45,8 +46,8 @@ public class Bounds2D {
     Objects.requireNonNull(yArray, "y array cannot be null");
     if (xArray.length == 0)
       throw new IllegalArgumentException("xArray is empty");
-    if (xArray.length != yArray.length)
-      throw new IllegalArgumentException("xArray.length != yArray.length");
+    if (yArray.length == 0)
+      throw new IllegalArgumentException("yArray is empty");
 
     Bounds2D bounds = empty();
     bounds.expandTo(xArray, yArray);
@@ -54,41 +55,27 @@ public class Bounds2D {
   }
 
   public static Bounds2D from(Collection<Coordinate> coordinates) {
-    if (coordinates == null || coordinates.isEmpty())
-      return null;
-    final Bounds2D bounds = empty();
-    coordinates.stream().forEach(c -> bounds.expandTo(c.x, c.y));
-    return bounds;
+    Objects.requireNonNull(coordinates);
+    if (coordinates.isEmpty())
+      throw new IllegalArgumentException("coordinates is empty");
+    
+    return from(coordinates.stream());
   }
 
   public static Bounds2D from(Coordinate[] coordinates) {
     Objects.requireNonNull(coordinates, "coordinates cannot be null");
+    if (coordinates.length == 0)
+      throw new IllegalArgumentException("coordinates is empty");
 
-    double minX = EmptyBounds.DEFAULT_VALUE;
-    double maxX = -EmptyBounds.DEFAULT_VALUE;
-    double minY = EmptyBounds.DEFAULT_VALUE;
-    double maxY = -EmptyBounds.DEFAULT_VALUE;
-    for (Coordinate coordinate : coordinates) {
-      double x = coordinate.x;
-      if (Dval.isDval(x) || Double.isInfinite(x) || Double.isNaN(x))
-        continue;
-      if (x < minX)
-        minX = x;
-      if (x > maxX)
-        maxX = x;
-
-      double y = coordinate.y;
-      if (Dval.isDval(y) || Double.isInfinite(y) || Double.isNaN(y))
-        continue;
-      if (y < minY)
-        minY = y;
-      if (y > maxY)
-        maxY = y;
-    }
-
-    return create(minX, maxX, minY, maxY);
+    return from(Arrays.stream(coordinates));
   }
 
+  private static Bounds2D from(Stream<Coordinate> stream) {
+    Bounds2D bounds = empty();
+    stream.forEach(c -> bounds.expandTo(c.x, c.y));
+    return bounds;
+  }
+  
   public static Bounds2D from(Bounds2D other) {
     return new Bounds2D(other);
   }
@@ -112,32 +99,32 @@ public class Bounds2D {
   /**
    * Returns true if the two rectangles have no intersections
    *
-   * @param bounds bounds to test
+   * @param other bounds to test
    * @return true if the two rectangles have no intersections, false otherwise
    */
-  public boolean disjoint(Bounds2D bounds) {
+  public boolean disjoint(Bounds2D other) {
     if (!isValid())
-      return false;
-    if (!bounds.isValid())
-      return false;
+      return true;
+    if (!other.isValid())
+      return true;
 
-    if (contains(bounds))
+    if (contains(other))
       return false;
-    if (bounds.contains(this))
+    if (other.contains(this))
       return false;
 
     boolean outsideX = false;
     if (
-      (bounds.getMinX() < getMinX() && bounds.getMaxX() < getMinX()) ||
-      (bounds.getMinX() > getMaxX() && bounds.getMaxX() > getMaxX())
+      (other.getMinX() < getMinX() && other.getMaxX() < getMinX()) ||
+      (other.getMinX() > getMaxX() && other.getMaxX() > getMaxX())
     ) {
       outsideX = true;
     }
 
     boolean outsideY = false;
     if (
-      (bounds.getMinY() < getMinY() && bounds.getMaxY() < getMinY()) ||
-      (bounds.getMinY() > getMaxY() && bounds.getMaxY() > getMaxY())
+      (other.getMinY() < getMinY() && other.getMaxY() < getMinY()) ||
+      (other.getMinY() > getMaxY() && other.getMaxY() > getMaxY())
     ) {
       outsideY = true;
     }
@@ -170,24 +157,9 @@ public class Bounds2D {
 
   public boolean contains(double x, double y) {
     if (!isValid())
-      return(false);
+      return false;
 
-    if (x < getMinX())
-      return(false);
-    if (x > getMaxX())
-      return(false);
-    if (y < getMinY())
-      return(false);
-    if (y > getMaxY())
-      return(false);
-
-    return(true);
-  }
-
-  public void expandBounds2D(Bounds2D bounds2D) {
-    if (bounds2D == null)
-      return;
-    bounds2D.expandTo(this);
+    return xBounds.contains(x) && yBounds.contains(y);
   }
 
   /**
@@ -200,23 +172,14 @@ public class Bounds2D {
    * @param other {@link Bounds2D} used to update bounds.
    */
   public void expandTo(Bounds2D other) {
-    if (other != null && other.isValid()) {
-      double minX = getMinX();
-      if (minX > other.getMinX())
-        minX = other.getMinX();
-      double maxX = getMaxX();
-      if (maxX < other.getMaxX())
-        maxX = other.getMaxX();
-
-      double minY = getMinY();
-      if (minY > other.getMinY())
-        minY = other.getMinY();
-      double maxY = getMaxY();
-      if (maxY < other.getMaxY())
-        maxY = other.getMaxY();
-
-      setValues(minX, maxX, minY, maxY);
-    }
+    Objects.requireNonNull(other);
+    if (!other.isValid())
+      throw new IllegalArgumentException("other bounds is invalid");
+    
+    Bounds x = this.isValid() ? Bounds.minMax(xBounds, other.xBounds) : other.xBounds;
+    Bounds y = this.isValid() ? Bounds.minMax(yBounds, other.yBounds) : other.yBounds;
+    setXValues(x.getMin(), x.getMax());
+    setYValues(y.getMin(), y.getMax());
   }
 
   /**
@@ -255,8 +218,10 @@ public class Bounds2D {
     Objects.requireNonNull(xArray, "xArray");
     Objects.requireNonNull(yArray, "yArray");
 
-    if (xArray.length != yArray.length)
-      throw new IllegalArgumentException("xArray.length != yArray.length");
+    if (xArray.length == 0)
+      throw new IllegalArgumentException("xArray.length cannot be zero");
+    if (yArray.length == 0)
+      throw new IllegalArgumentException("yArray.length cannot be zero");
 
     Bounds x = Bounds.of(xArray);
     Bounds y = Bounds.of(yArray);
@@ -328,14 +293,14 @@ public class Bounds2D {
   }
 
   /**
-   * Return true if point is inside the bounds, false otherwise.
+   * Return true if point is inside the bounds, false otherwise; alias for contains()
    *
    * @param x the X coordinate of the point to evaluate
    * @param y the Y coordinate of the point to evaluate
    * @return true if point is inside the bounds, false otherwise
    */
   public boolean isPointInside(double x, double y) {
-    return(getMinX() <= x && x <= getMaxX() && getMinY() <= y && y <= getMaxY());
+    return contains(x, y);
   }
 
   /**
@@ -386,97 +351,43 @@ public class Bounds2D {
    * If the current bounds are not valid, nothing is changed and false
    * is returned.
    *
-   * @param pct the percentage to expand.
+   * @param pct the percentage to expand valid range=[-100, 100]%
    * @return true if expansion worked, false otherwise.
    */
   public boolean expandByPercentage(double pct) {
     if (!isValid())
-      return(false);
-    if (Dval.isDval(pct))
+      return false;
+    if (!Bounds.PERCENT.contains(Math.abs(pct)))
       return false;
 
-    double factor = pct / 100.0;
-    // divide factor in half because it will be used on both ends
-    factor *= 0.5;
-
-    if (this.xBounds.isValid()) {
-      double minX = getMinX();
-      double maxX = getMaxX();
-      double deltaX = factor * this.xBounds.getRange();
-      minX -= deltaX;
-      maxX += deltaX;
-      setXValues(minX, maxX);
-    }
-
-    if (this.yBounds.isValid()) {
-      double minY = getMinY();
-      double maxY = getMaxY();
-      double deltaY = factor * this.yBounds.getRange();
-      minY -= deltaY;
-      maxY += deltaY;
-      setYValues(minY, maxY);
-    }
-
-    return(true);
+    expandWidthByPercentage(pct);
+    expandHeightByPercentage(pct);
+    
+    return true;
   }
 
   public boolean expandWidthByPercentage(double pct) {
     if (!isValid())
-      return(false);
-    if (Dval.isDval(pct))
+      return false;
+    if (!Bounds.PERCENT.contains(Math.abs(pct)))
       return false;
 
-    double factor = pct / 100.0;
-    // divide factor in half because it will be used on both ends
-    factor *= 0.5;
+    Bounds x = Bounds.expandByPercent(xBounds, pct);
+    setXValues(x.getMin(), x.getMax());
 
-    if (this.xBounds.isValid()) {
-      double minX = getMinX();
-      double maxX = getMaxX();
-      double deltaX = factor * this.xBounds.getRange();
-      minX -= deltaX;
-      maxX += deltaX;
-      setXValues(minX, maxX);
-    }
-
-    return(true);
+    return true;
   }
 
   public boolean expandHeightByPercentage(double pct) {
     if (!isValid())
-      return(false);
-    if (Dval.isDval(pct))
+      return false;
+    if (!Bounds.PERCENT.contains(Math.abs(pct)))
       return false;
 
-    double factor = pct / 100.0;
-    // divide factor in half because it will be used on both ends
-    factor *= 0.5;
+    Bounds y = Bounds.expandByPercent(yBounds, pct);
+    setYValues(y.getMin(), y.getMax());
 
-    if (this.yBounds.isValid()) {
-      double minY = getMinY();
-      double maxY = getMaxY();
-      double deltaY = factor * this.yBounds.getRange();
-      minY -= deltaY;
-      maxY += deltaY;
-      setYValues(minY, maxY);
-    }
-
-    return(true);
-  }
-
-  public void dump(int indent) {
-    StringBuffer stringBuffer = new StringBuffer(indent);
-    for (int index = 0; index < indent; index++)
-      stringBuffer.append(' ');
-    String whiteSpace = stringBuffer.toString();
-    whiteSpace += "  "; //$NON-NLS-1$
-    System.out.println(whiteSpace+"minX: "+getMinX());
-    System.out.println(whiteSpace+"maxX: "+getMaxX());
-    System.out.println(whiteSpace+"minY: "+getMinY());
-    System.out.println(whiteSpace+"maxY: "+getMaxY());
-    System.out.println(whiteSpace+"width: "+getWidth());
-    System.out.println(whiteSpace+"height: "+getHeight());
-    System.out.println(whiteSpace+"midpoint: "+getMidpoint());
+    return true;
   }
 
   public Bounds xBounds() {
@@ -575,22 +486,6 @@ public class Bounds2D {
     return midY;
   }
 
-  public boolean isSame(final Bounds2D other) {
-    if (other == null)
-      return false;
-
-    if (!MathUtil.doublesEqual(getMinX(), other.getMinX()))
-      return false;
-    if (!MathUtil.doublesEqual(getMaxX(), other.getMaxX()))
-      return false;
-    if (!MathUtil.doublesEqual(getMinY(), other.getMinY()))
-      return false;
-    if (!MathUtil.doublesEqual(getMaxY(), other.getMaxY()))
-      return false;
-
-    return true;
-  }
-
   public void makeInvalid() {
     this.xBounds = Bounds.nullBounds();
     this.yBounds = Bounds.nullBounds();
@@ -608,20 +503,10 @@ public class Bounds2D {
     if (!isValid())
       return false;
 
-    if (
-      getMinX() < -180
-      || getMaxX() > 180
-      || getMinY() < -90
-      || getMaxY() > 90
-    ) {
-      return(false);
-    }
-
-    /* removed >= because wells are singular points and this test would fail */
-    if (getMinX() > getMaxX() || getMinY() > getMaxY())
-      return(false);
-
-    return(true);
+    return Bounds.LONGITUDE.contains(getMinX()) 
+        && Bounds.LONGITUDE.contains(getMaxX())
+        && Bounds.LATITUDE.contains(getMinY())
+        && Bounds.LATITUDE.contains(getMaxY());
   }
 
   public double computeArea() {

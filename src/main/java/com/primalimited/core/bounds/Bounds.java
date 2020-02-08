@@ -53,6 +53,13 @@ public interface Bounds {
   }
 
   public default boolean overlaps(Bounds other) {
+    Objects.requireNonNull(other);
+    if (!other.isValid())
+      return false;
+    
+    if (!isValid())
+      return false;
+    
     return (getMin() >= other.getMin() && getMin() <= other.getMax())
         || (getMax() >= other.getMin() && getMax() <= other.getMax())
         || (other.getMin() >= getMin() && other.getMin() <= getMax())
@@ -63,6 +70,8 @@ public interface Bounds {
   public static final Bounds FRACTION = Bounds.of(0, 1);
   public static final Bounds PERCENT = Bounds.of(0, 100);
   public static final Bounds DEGREES = Bounds.of(0, 360);
+  public static final Bounds LATITUDE = Bounds.of(0, 90);
+  public static final Bounds LONGITUDE = Bounds.of(0, 180);
   public static final Bounds RADIANS = Bounds.of(0, 2*Math.PI);
   public static final Bounds RGB_8_BIT = Bounds.of(0, 255);
 
@@ -101,7 +110,19 @@ public interface Bounds {
     double max = Math.max(original.getMax(), value);
     return of(min, max);
   }
-  
+
+  public static Bounds expandByPercent(Bounds original, double percent) {
+    if (!Bounds.PERCENT.contains(Math.abs(percent)))
+      return original;
+
+    double fraction = percent / 100.0;
+    double halfFraction = fraction / 2.0;
+    
+    double min = original.getMin() - (halfFraction * original.getRange());
+    double max = original.getMax() + (halfFraction * original.getRange());
+    return of(min, max);
+  }
+
   public static Bounds of(double[] arrayParam) {
     double[] array = Objects.requireNonNull(arrayParam, "array cannot be null");
     if (arrayParam.length == 0)
@@ -126,6 +147,16 @@ public interface Bounds {
     return ImmutableBounds.of(stats.getMin(), stats.getMax());
   }
 
+  public static Bounds minMax(Bounds bounds0, Bounds bounds1) {
+    Objects.requireNonNull(bounds0);
+    Objects.requireNonNull(bounds1);
+    if (!bounds0.isValid())
+      throw new IllegalArgumentException("bounds0 is invalid:" + bounds0.format());
+    if (!bounds1.isValid())
+      throw new IllegalArgumentException("bounds1 is invalid:" + bounds1.format());
+    return Bounds.of(Math.min(bounds0.getMin(), bounds1.getMin()), Math.max(bounds0.getMax(), bounds1.getMax()));
+  }
+  
   public static boolean valid(double min, double max) {
     if (!Dval.isValid.test(min))
       return false;

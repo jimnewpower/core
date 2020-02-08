@@ -1,6 +1,7 @@
 package com.primalimited.core.dval;
 
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.function.DoublePredicate;
 import java.util.function.Predicate;
 
@@ -34,7 +35,7 @@ public class Dval {
   public static boolean isDval(Double num) {
     return num.doubleValue() >= DVAL_DOUBLE;
   }
-  
+
   /**
    * Determine if <code>double</code> is a Dval.
    *
@@ -64,6 +65,10 @@ public class Dval {
 
   public static boolean isDval(byte num) {
     return num == DVAL_BYTE;
+  }
+
+  public static boolean isDval(Byte num) {
+    return num.byteValue() == DVAL_BYTE;
   }
 
   /**
@@ -108,6 +113,8 @@ public class Dval {
    * @return true if num &gt;= (TYPE) DVAL, false otherwise.
    */
   public static boolean isDval(Number num) {
+    Objects.requireNonNull(num);
+    
     if (num instanceof Double)
       return(isDval((Double) num));
 
@@ -120,7 +127,10 @@ public class Dval {
     if (num instanceof Long)
       return(isDval((Long) num));
 
-    return(false);
+    if (num instanceof Byte)
+      return(isDval((Byte) num));
+
+    throw new IllegalArgumentException(num.getClass().getName() + " type is not supported");
   }
 
   public static boolean hasDval(int[] array) {
