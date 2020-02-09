@@ -20,17 +20,53 @@ import com.primalimited.core.math.MathUtil;
  * Represents two bounding values, e.g. endpoints of a horizontal or vertical line segment.
  */
 public interface Bounds {
+  /**
+   * Return the minimum value
+   * @return the minimum value
+   */
   public double getMin();
+  
+  /**
+   * Return the maximum value
+   * @return the maximum value
+   */
   public double getMax();
+  
+  /**
+   * Return the range of data (e.g. max-min)
+   * @return the range of data
+   */
   public double getRange();
 
+  /**
+   * Implementations may use this as part of their toString() implementation.
+   * 
+   * @return descriptive bounds text
+   */
   public default String boundsText() {
     NumberFormat nf = NumberFormat.getInstance();
-    String min = Dval.isDval(getMin()) ? "Dval" : nf.format(getMin());
-    String max = Dval.isDval(getMax()) ? "Dval" : nf.format(getMax());
-    return "[" + min + ".." + max + "]";
+    String minText = format(nf, getMin()); 
+    String maxText = format(nf, getMax()); 
+    return "[" + minText + ".." + maxText + "]";
   }
 
+  static String format(NumberFormat nf, double value) {
+    Objects.requireNonNull(nf);
+    String text =
+        Double.isNaN(value) ? "NaN"
+        : Double.isInfinite(value) ? "Infinity"
+        : Dval.isDval(value) ? "Dval" 
+        : nf.format(value);
+    return text;
+  }
+
+  /**
+   * Throws IllegalArgumentException if either argument is invalid, or if
+   * min > max.
+   * 
+   * @param min min value 
+   * @param max max value
+   */
   public default void validateArguments(double min, double max) {
     if (!Dval.isValid.test(min))
       throw new IllegalArgumentException("min is invalid (" + min + ")");
@@ -40,18 +76,41 @@ public interface Bounds {
       throw new IllegalArgumentException("min (" + min + ") > max (" + max + ")");
   }
 
+  /**
+   * Return true if bounds are valid, false otherwise 
+   * @return true if bounds are valid, false otherwise
+   */
   public default boolean isValid() {
     return valid(getMin(), getMax());
   }
 
+  /**
+   * Return true if bounds are valid AND min value is > 0,
+   * false otherwise.
+   * 
+   * @return true if bounds are valid AND min value is > 0,
+   * false otherwise.
+   */
   public default boolean isValidForLogScale() {
     return valid(getMin(), getMax()) && getMin() > 0.0;
   }
 
+  /**
+   * Return true if min == max, false otherwise.
+   * @return return true if min == max, false otherwise.
+   */
   public default boolean rangeIsZero() {
     return isValid() && MathUtil.doublesEqual(getMin(), getMax());
   }
 
+  /**
+   * Return true if this bounds overlaps other bounds, false 
+   * otherwise.
+   * 
+   * @param other other bounds
+   * @return true if this bounds overlaps other bounds, false 
+   * otherwise.
+   */
   public default boolean overlaps(Bounds other) {
     Objects.requireNonNull(other);
     if (!other.isValid())
@@ -66,13 +125,44 @@ public interface Bounds {
         || (other.getMax() >= getMin() && other.getMax() <= getMax());
   }
 
+  /**
+   * Probability bounds [0..1]
+   */
   public static final Bounds PROBABILITY = Bounds.of(0, 1);
+  
+  /**
+   * Fraction bounds [0..1]
+   */
   public static final Bounds FRACTION = Bounds.of(0, 1);
+  
+  /**
+   * Percent bounds [0..100]
+   */
   public static final Bounds PERCENT = Bounds.of(0, 100);
+  
+  /**
+   * Degrees bounds [0..360]
+   */
   public static final Bounds DEGREES = Bounds.of(0, 360);
+  
+  /**
+   * Latitude bounds [0..90]
+   */
   public static final Bounds LATITUDE = Bounds.of(0, 90);
+  
+  /**
+   * Longitude bounds [0..180]
+   */
   public static final Bounds LONGITUDE = Bounds.of(0, 180);
+  
+  /**
+   * Radians bounds [0..2Pi]
+   */
   public static final Bounds RADIANS = Bounds.of(0, 2*Math.PI);
+  
+  /**
+   * 8-bit color value bounds [0..255]
+   */
   public static final Bounds RGB_8_BIT = Bounds.of(0, 255);
 
   public static Bounds of(double min, double max) {
@@ -157,6 +247,14 @@ public interface Bounds {
     return Bounds.of(Math.min(bounds0.getMin(), bounds1.getMin()), Math.max(bounds0.getMax(), bounds1.getMax()));
   }
   
+  /**
+   * Return true if both arguments constitute a valid Bounds: min <= max,
+   * and both min and max are finite and non-dval.
+   * 
+   * @param min min value
+   * @param max max value
+   * @return true if both arguments constitute a valid Bounds
+   */
   public static boolean valid(double min, double max) {
     if (!Dval.isValid.test(min))
       return false;
@@ -261,11 +359,10 @@ public interface Bounds {
   public default double getFractionBetween(double value) {
     if (value < getMin() || value > getMax())
       return Dval.DVAL_DOUBLE;
-    if (MathUtil.doublesEqual(getMin(), getMax())) {
-      if (MathUtil.doublesEqual(getMin(), value))
-        return 0.0;
-      return Dval.DVAL_DOUBLE;
-    }
+
+    if (rangeIsZero())
+      return 0.0;
+    
     return (value - getMin()) / getRange();
   }
 
@@ -279,7 +376,7 @@ public interface Bounds {
   }
 
   public default boolean isNull() {
-    return Dval.isDval(getMin()) && Dval.isDval(getMax()) && !isValid();
+    return Dval.isDval(getMin()) && Dval.isDval(getMax());
   }
 
   public default void expandTo(@SuppressWarnings("unused") double value) {

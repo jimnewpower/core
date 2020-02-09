@@ -17,6 +17,11 @@ class MutableBounds implements Bounds, BoundsMutator {
   }
   
   @Override
+  public String toString() {
+    return getClass().getSimpleName() + " " + boundsText();
+  }
+
+  @Override
   public double getMin() {
     return this.min;
   }

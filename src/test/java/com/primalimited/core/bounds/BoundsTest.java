@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -113,6 +114,10 @@ public class BoundsTest {
     expanded = Bounds.expand(orig, new double[] { -1, -1 });
     assertEquals(-1, expanded.getMin(), 1e-10);
     assertEquals(1, expanded.getMax(), 1e-10);
+    
+    expanded = Bounds.expand(Bounds.nullBounds(), new double[] { 2, 4, 8, 16, 32, 64 });
+    assertEquals(2, expanded.getMin(), 1e-10);
+    assertEquals(64, expanded.getMax(), 1e-10);
   }
 
   @Test
@@ -306,15 +311,42 @@ public class BoundsTest {
   }
 
   @Test
+  public void staticValidTest() {
+    assertFalse(Bounds.valid(0, Dval.DVAL_DOUBLE));
+    assertFalse(Bounds.valid(Dval.DVAL_DOUBLE, 0));
+  }
+  
+  @Test
   public void validForLogScale() {
+    assertFalse(Bounds.empty().isValidForLogScale());
+    assertFalse(Bounds.nullBounds().isValidForLogScale());
+
+    assertTrue(Bounds.of(1e-10, 1).isValidForLogScale());
     assertTrue(Bounds.of(1, 10).isValidForLogScale());
+    assertTrue(Bounds.of(1000, 100000).isValidForLogScale());
     assertFalse(Bounds.of(0, 10).isValidForLogScale());
+    assertFalse(Bounds.of(-5, 200).isValidForLogScale());
+    assertFalse(Bounds.of(-50, -10).isValidForLogScale());
   }
   
   @Test
   public void isNull() {
     assertTrue(Bounds.nullBounds().isNull());
     assertFalse(Bounds.DEGREES.isNull());
+
+    // min dval but valid max == not null
+    assertFalse(new Bounds() {
+      @Override public double getMin() { return Dval.DVAL_DOUBLE; }
+      @Override public double getMax() { return 0; }
+      @Override public double getRange() { return 0; }
+    }.isNull());
+
+    // max dval but valid min == not null
+    assertFalse(new Bounds() {
+      @Override public double getMin() { return 0; }
+      @Override public double getMax() { return Dval.DVAL_DOUBLE; }
+      @Override public double getRange() { return 0; }
+    }.isNull());
   }
   
   @Test
@@ -435,6 +467,13 @@ public class BoundsTest {
   }
 
   @Test
+  public void allOverlapEmpty() {
+    final Bounds[] all = new Bounds[] { };
+    assertThrows(IllegalArgumentException.class,
+        () -> Bounds.allOverlap(all));
+  }
+
+  @Test
   public void common() {
     Bounds[] all = new Bounds[] {
       Bounds.of(  0, 0),
@@ -498,6 +537,29 @@ public class BoundsTest {
     assertThrows(IllegalArgumentException.class, () -> Bounds.common(all));
   }
 
+  @Test
+  public void format() {
+    NumberFormat nf = NumberFormat.getInstance();
+    assertEquals("-684.25", Bounds.format(nf, -684.25));
+    assertEquals("0", Bounds.format(nf, 0));
+    assertEquals("42.01", Bounds.format(nf, 42.01));
+  }
+
+  @Test
+  public void formatSpecialCases() {
+    NumberFormat nf = NumberFormat.getInstance();
+    assertEquals("NaN", Bounds.format(nf, Double.NaN));
+    assertEquals("Infinity", Bounds.format(nf, Double.POSITIVE_INFINITY));
+    assertEquals("Dval", Bounds.format(nf, Dval.DVAL_DOUBLE));
+  }
+
+  @Test
+  public void formatWithNullNumberFormatArgShouldThrow() {
+    NumberFormat nf = null;
+    assertThrows(NullPointerException.class, 
+        () -> Bounds.format(nf, Double.NaN));
+  }
+  
   @Test 
   public void dvalMinArg() {
     assertThrows(IllegalArgumentException.class, () -> Bounds.immutable(Dval.DVAL_DOUBLE, 10));

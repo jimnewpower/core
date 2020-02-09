@@ -108,30 +108,40 @@ public class Bounds2D {
     if (!other.isValid())
       return true;
 
-    if (contains(other))
-      return false;
-    if (other.contains(this))
-      return false;
-
-    boolean outsideX = false;
-    if (
-      (other.getMinX() < getMinX() && other.getMaxX() < getMinX()) ||
-      (other.getMinX() > getMaxX() && other.getMaxX() > getMaxX())
-    ) {
-      outsideX = true;
-    }
-
-    boolean outsideY = false;
-    if (
-      (other.getMinY() < getMinY() && other.getMaxY() < getMinY()) ||
-      (other.getMinY() > getMaxY() && other.getMaxY() > getMaxY())
-    ) {
-      outsideY = true;
-    }
-
-    return outsideX || outsideY;
+    return !intersects(other);
   }
 
+  /**
+   * Returns true if the rectangles intersect, false otherwise
+   * 
+   * @param bounds other bounds
+   * @return true if the rectangles intersect, false otherwise
+   */
+  public boolean intersects(Bounds2D bounds) {
+    if (!isValid())
+      return false;
+    if (!bounds.isValid())
+      return false;
+
+    Coordinate bottomLeft = Coordinate.of(getMinX(), getMinY());
+    Coordinate topRight = Coordinate.of(getMaxX(), getMaxY());
+
+    Coordinate otherBottomLeft = Coordinate.of(bounds.getMinX(), bounds.getMinY());
+    Coordinate otherTopRight = Coordinate.of(bounds.getMaxX(), bounds.getMaxY());
+    
+    if (topRight.y < otherBottomLeft.y 
+      || bottomLeft.y > otherTopRight.y) {
+        return false;
+    }
+    
+    if (topRight.x < otherBottomLeft.x 
+      || bottomLeft.x > otherTopRight.x) {
+        return false;
+    }
+    
+    return true;
+  }
+  
   /**
    * Returns true if and only if bounds arg is entirely inside this bounds
    * @param bounds bounds
@@ -143,6 +153,9 @@ public class Bounds2D {
     if (!bounds.isValid())
       return false;
 
+    if (disjoint(bounds))
+      return false;
+    
     if (bounds.getMinX() < getMinX())
       return false;
     if (bounds.getMaxX() > getMaxX())
@@ -451,11 +464,15 @@ public class Bounds2D {
   public double ratioXY() {
     if (!isValid())
       return Dval.DVAL_DOUBLE;
+    if (yBounds.rangeIsZero())
+      return Dval.DVAL_DOUBLE;
     return getWidth() / getHeight();
   }
 
   public double ratioYX() {
     if (!isValid())
+      return Dval.DVAL_DOUBLE;
+    if (xBounds.rangeIsZero())
       return Dval.DVAL_DOUBLE;
     return getHeight() / getWidth();
   }
