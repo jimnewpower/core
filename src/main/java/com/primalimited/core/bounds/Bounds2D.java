@@ -539,6 +539,10 @@ public class Bounds2D {
   }
 
   public boolean isDefault() {
-    return xBounds.isEmpty() && yBounds.isEmpty();
+    if (!xBounds.isEmpty())
+      return false;
+    if (!yBounds.isEmpty())
+      return false;
+    return true;
   }
 }

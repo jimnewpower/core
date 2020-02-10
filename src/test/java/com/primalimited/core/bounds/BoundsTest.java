@@ -57,9 +57,20 @@ public class BoundsTest {
 
   @Test
   public void boundIntToDoublePrecisionBoundsShouldThrow() {
-    Bounds bounds = Bounds.of(1.25, 2.50);
+    // min and max have double precision
+    Bounds bounds1 = Bounds.of(1.25, 2.50);
     assertThrows(IllegalStateException.class,
-        () -> bounds.bound(2));
+        () -> bounds1.bound(2));
+
+    // min has double precision
+    Bounds bounds2 = Bounds.of(1.25, 3);
+    assertThrows(IllegalStateException.class,
+        () -> bounds2.bound(2));
+
+    // max has double precision
+    Bounds bounds3 = Bounds.of(1, 2.50);
+    assertThrows(IllegalStateException.class,
+        () -> bounds3.bound(2));
   }
 
   @Test
@@ -264,6 +275,14 @@ public class BoundsTest {
     assertEquals(16.0, bounds.getRange(), 0.0);
   }
 
+
+  @Test
+  public void createFromNullArray() {
+    double[] array = null;
+    Bounds bounds = Bounds.of(array);
+    assertTrue(bounds.isNull());
+  }
+  
   @Test
   public void createFromEmptyOrDvalArray() {
     Bounds bounds = Bounds.of(new double[] { });
@@ -298,11 +317,26 @@ public class BoundsTest {
   }
 
   @Test
-  public void createFromBadCollectionShouldReturnNullBounds() {
+  public void createFromEmptyCollectionShouldReturnNullBounds() {
     Collection<Double> doubles = new ArrayList<>();
     Bounds bounds = Bounds.of(doubles);
     // empty collection should return NullBounds object, which is invalid
     // and returns DVAL for min(), max(), range()
+    assertTrue(bounds.isNull());
+    assertFalse(bounds.isValid());
+    assertTrue(Dval.isDval(bounds.getMin()));
+    assertTrue(Dval.isDval(bounds.getMax()));
+    assertTrue(Dval.isDval(bounds.getRange()));
+  }
+
+
+  @Test
+  public void createFromNullCollectionShouldReturnNullBounds() {
+    Collection<Double> doubles = null;
+    Bounds bounds = Bounds.of(doubles);
+    // empty collection should return NullBounds object, which is invalid
+    // and returns DVAL for min(), max(), range()
+    assertTrue(bounds.isNull());
     assertFalse(bounds.isValid());
     assertTrue(Dval.isDval(bounds.getMin()));
     assertTrue(Dval.isDval(bounds.getMax()));
@@ -448,8 +482,11 @@ public class BoundsTest {
 
   @Test
   public void overlaps() {
+    assertTrue(Bounds.of(-1234.5678, 1234.5678).overlaps(Bounds.of(0, 0)));
     assertTrue(Bounds.of(0, 0).overlaps(Bounds.of(0, 0)));
     assertTrue(Bounds.of(0, 1).overlaps(Bounds.of(0, 1)));
+    assertTrue(Bounds.of(0, 1).overlaps(Bounds.of(1, 2)));
+    assertTrue(Bounds.of(1, 2).overlaps(Bounds.of(0, 1)));
     assertTrue(Bounds.of(0, 100).overlaps(Bounds.of(10, 90)));
     assertTrue(Bounds.of(10, 90).overlaps(Bounds.of(0, 100)));
     assertTrue(Bounds.of(-1000, 1000).overlaps(Bounds.of(-2000, 2000)));
@@ -571,6 +608,15 @@ public class BoundsTest {
   }
 
   @Test
+  public void testIsEmpty() {
+    assertFalse(Bounds.FRACTION.isEmpty());
+    assertTrue(Bounds.empty().isEmpty());
+    
+    assertFalse(MutableBounds.of(Bounds.empty().getMin(), 56).isEmpty());
+    assertFalse(MutableBounds.of(23, Bounds.empty().getMin()).isEmpty());
+  }
+  
+  @Test
   public void formatWithNumberFormat() {
     NumberFormat nf = NumberFormat.getInstance();
     assertEquals("-684.25", Bounds.format(nf, -684.25));
@@ -612,6 +658,11 @@ public class BoundsTest {
     assertEquals("NaN", Bounds.format(nf, Double.NaN));
     assertEquals("Infinity", Bounds.format(nf, Double.POSITIVE_INFINITY));
     assertEquals("Dval", Bounds.format(nf, Dval.DVAL_DOUBLE));
+
+    String format = "%.2f";
+    assertEquals("NaN", Bounds.format(format, Double.NaN));
+    assertEquals("Infinity", Bounds.format(format, Double.POSITIVE_INFINITY));
+    assertEquals("Dval", Bounds.format(format, Dval.DVAL_DOUBLE));
   }
 
   @Test

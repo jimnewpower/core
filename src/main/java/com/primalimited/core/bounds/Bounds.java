@@ -142,10 +142,13 @@ public interface Bounds {
     if (!isValid())
       return false;
     
-    return (getMin() >= other.getMin() && getMin() <= other.getMax())
-        || (getMax() >= other.getMin() && getMax() <= other.getMax())
-        || (other.getMin() >= getMin() && other.getMin() <= getMax())
-        || (other.getMax() >= getMin() && other.getMax() <= getMax());
+    if (getMax() < other.getMin())
+      return false;
+    
+    if (getMin() > other.getMax())
+      return false;
+    
+    return true;
   }
 
   /**

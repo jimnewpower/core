@@ -28,6 +28,7 @@ dependencies {
 
     // Use JUnit test framework
 	testImplementation('org.junit.jupiter:junit-jupiter:5.6.0')
+	testImplementation 'org.hamcrest:hamcrest:2.2'
 }
 
 jacoco {
@@ -40,6 +41,29 @@ jacocoTestReport {
         xml.enabled false
         csv.enabled false
         html.destination file("${buildDir}/jacocoHtml")
+    }
+}
+
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                // 90% instructions covered ratio minimum
+                minimum = 0.9
+            }
+        }
+
+        rule {
+            enabled = false
+            element = 'CLASS'
+            includes = ['org.gradle.*']
+
+            limit {
+                counter = 'LINE'
+                value = 'TOTALCOUNT'
+                maximum = 0.3
+            }
+        }
     }
 }
 

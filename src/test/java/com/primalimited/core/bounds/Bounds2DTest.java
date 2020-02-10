@@ -412,7 +412,17 @@ public class Bounds2DTest {
   public void isDefault() {
     Bounds2D bounds = Bounds2D.empty();
     assertTrue(bounds.isDefault());
+    
+    // valid bounds != default bounds
     assertFalse(validMock().isDefault());
+
+    bounds = Bounds2D.empty();
+    bounds.setXValues(0, 10);
+    assertFalse(bounds.isDefault());
+    
+    bounds = Bounds2D.empty();
+    bounds.setYValues(0, 10);
+    assertFalse(bounds.isDefault());
   }
 
   @Test
@@ -436,7 +446,16 @@ public class Bounds2DTest {
 
   @Test
   public void doesNotdefineArea() {
+    // width and height both zero
     Bounds2D bounds = Bounds2D.create(Bounds.of(0, 0), Bounds.of(0, 0));
+    assertFalse(bounds.definesArea());
+
+    // width zero
+    bounds = Bounds2D.create(Bounds.of(0, 0), Bounds.of(0, 10));
+    assertFalse(bounds.definesArea());
+
+    // height zero
+    bounds = Bounds2D.create(Bounds.of(0, 10), Bounds.of(0, 0));
     assertFalse(bounds.definesArea());
   }
 
