@@ -539,13 +539,6 @@ public class Bounds2D {
   }
 
   public boolean isDefault() {
-    if (
-        Double.compare(getMinX(), EmptyBounds.DEFAULT_VALUE) == 0
-        && Double.compare(getMaxX(), -EmptyBounds.DEFAULT_VALUE) == 0
-        && Double.compare(getMinY(), EmptyBounds.DEFAULT_VALUE) == 0
-        && Double.compare(getMaxY(), -EmptyBounds.DEFAULT_VALUE) == 0
-      )
-      return true;
-    return false;
+    return xBounds.isEmpty() && yBounds.isEmpty();
   }
 }

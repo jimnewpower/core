@@ -132,6 +132,80 @@ public class Bounds2DTest {
   }
 
   @Test
+  public void expandToValues_InvalidMinX() {
+    Bounds2D bounds = validMock();
+    
+    bounds.expandTo(Dval.DVAL_DOUBLE/* srcMinX */, 200/* srcMaxX */, 2/* srcMinY */, 96/* srcMaxY */);
+    assertEquals(0.0/*unchanged*/, bounds.getMinX(), 1e-10);
+    assertEquals(200, bounds.getMaxX(), 1e-10);
+    assertEquals(2, bounds.getMinY(), 1e-10);
+    assertEquals(96, bounds.getMaxY(), 1e-10);
+  }
+
+  @Test
+  public void expandToValues_InvalidMaxX() {
+    Bounds2D bounds = validMock();
+    
+    bounds.expandTo(-5/* srcMinX */, Dval.DVAL_DOUBLE/* srcMaxX */, 2/* srcMinY */, 96/* srcMaxY */);
+    assertEquals(-5, bounds.getMinX(), 1e-10);
+    assertEquals(100/*unchanged*/, bounds.getMaxX(), 1e-10);
+    assertEquals(2, bounds.getMinY(), 1e-10);
+    assertEquals(96, bounds.getMaxY(), 1e-10);
+  }
+
+  @Test
+  public void expandToValues_InvalidMinY() {
+    Bounds2D bounds = validMock();
+    
+    bounds.expandTo(-5/* srcMinX */, 200/* srcMaxX */, Dval.DVAL_DOUBLE/* srcMinY */, 96/* srcMaxY */);
+    assertEquals(-5, bounds.getMinX(), 1e-10);
+    assertEquals(200, bounds.getMaxX(), 1e-10);
+    assertEquals(20/*unchanged*/, bounds.getMinY(), 1e-10);
+    assertEquals(96, bounds.getMaxY(), 1e-10);
+  }
+
+  @Test
+  public void expandToValues_InvalidMaxY() {
+    Bounds2D bounds = validMock();
+    
+    bounds.expandTo(-5/* srcMinX */, 200/* srcMaxX */, 2/* srcMinY */, Dval.DVAL_DOUBLE/* srcMaxY */);
+    assertEquals(-5, bounds.getMinX(), 1e-10);
+    assertEquals(200, bounds.getMaxX(), 1e-10);
+    assertEquals(2, bounds.getMinY(), 1e-10);
+    assertEquals(80/*unchanged*/, bounds.getMaxY(), 1e-10);
+  }
+
+  @Test
+  public void expandToArrays() {
+    double[] xs = new double[] { 0, 1, 2, 4, 8 };
+    double[] ys = new double[] { 3, 9, 81 };
+    Bounds2D bounds = Bounds2D.from(xs, ys);
+    
+    xs = new double[] { -16, -8, -4, -2 };
+    ys = new double[] { 111, 222, 333 };
+    bounds.expandTo(xs, ys);
+    assertEquals(-16, bounds.getMinX(), 1e-10);
+    assertEquals(8, bounds.getMaxX(), 1e-10);
+    assertEquals(3, bounds.getMinY(), 1e-10);
+    assertEquals(333, bounds.getMaxY(), 1e-10);
+  }
+
+  @Test
+  public void expandToInvalidArrays() {
+    double[] xs = new double[] { 0, 1, 2, 4, 8 };
+    double[] ys = new double[] { 3, 9, 81 };
+    Bounds2D bounds = Bounds2D.from(xs, ys);
+    
+    xs = new double[] { Dval.DVAL_DOUBLE };
+    ys = new double[] { Double.NaN };
+    bounds.expandTo(xs, ys);
+    assertEquals(0, bounds.getMinX(), 1e-10);
+    assertEquals(8, bounds.getMaxX(), 1e-10);
+    assertEquals(3, bounds.getMinY(), 1e-10);
+    assertEquals(81, bounds.getMaxY(), 1e-10);
+  }
+
+  @Test
   public void expandToNullCoordinatesArrayThrows() {
     Coordinate[] coords = null;
     assertThrows(NullPointerException.class, 
@@ -214,6 +288,14 @@ public class Bounds2DTest {
   public void valid() {
     assertTrue(validMock().isValid());
     assertFalse(invalidMock().isValid());
+    
+    Bounds2D bounds = invalidMock();
+    bounds.setXValues(5, 10);
+    assertFalse(bounds.isValid());
+    
+    bounds = invalidMock();
+    bounds.setYValues(5, 10);
+    assertFalse(bounds.isValid());
   }
   
   @Test
@@ -228,8 +310,25 @@ public class Bounds2DTest {
   
   @Test
   public void containsOnInvalid() {
+    assertFalse(invalidMock().contains(validMock()));
     assertFalse(invalidMock().contains(0, 0));
     assertFalse(validMock().contains(invalidMock()));
+    
+    //disjoint
+    double minX = 0;
+    double maxX = 100;
+    double minY = 0;
+    double maxY = 100;
+    Bounds2D bounds = Bounds2D.create(minX, maxX, minY, maxY);
+
+    minX = 101;
+    maxX = 200;
+    minY = 101;
+    maxY = 200;
+    Bounds2D other = Bounds2D.create(minX, maxX, minY, maxY);
+
+    assertFalse(bounds.contains(other));
+    assertFalse(other.contains(bounds));
   }
   
   @Test
@@ -313,6 +412,7 @@ public class Bounds2DTest {
   public void isDefault() {
     Bounds2D bounds = Bounds2D.empty();
     assertTrue(bounds.isDefault());
+    assertFalse(validMock().isDefault());
   }
 
   @Test
@@ -325,6 +425,7 @@ public class Bounds2DTest {
   public void definesArea() {
     Bounds2D bounds = validMock();
     assertTrue(bounds.definesArea());
+    assertFalse(invalidMock().definesArea());
   }
 
   @Test
@@ -612,8 +713,29 @@ public class Bounds2DTest {
     Bounds2D bounds1 = Bounds2D.create(Bounds.of(19, 30), Bounds.of(49, 100));
     assertTrue(bounds0.intersects(bounds1) && bounds1.intersects(bounds0));
 
+    // x and y both fail
     bounds0 = Bounds2D.create(Bounds.of(10, 20), Bounds.of(0, 50));
     bounds1 = Bounds2D.create(Bounds.of(21, 30), Bounds.of(51, 100));
+    assertFalse(bounds0.intersects(bounds1) && bounds1.intersects(bounds0));
+
+    // x fails high
+    bounds0 = Bounds2D.create(Bounds.of(10, 20), Bounds.of(0, 50));
+    bounds1 = Bounds2D.create(Bounds.of(21, 30), Bounds.of(1, 25));
+    assertFalse(bounds0.intersects(bounds1) && bounds1.intersects(bounds0));
+
+    // x fails low
+    bounds0 = Bounds2D.create(Bounds.of(10, 20), Bounds.of(0, 50));
+    bounds1 = Bounds2D.create(Bounds.of(1, 9), Bounds.of(1, 25));
+    assertFalse(bounds0.intersects(bounds1) && bounds1.intersects(bounds0));
+
+    // y fails high
+    bounds0 = Bounds2D.create(Bounds.of(10, 20), Bounds.of(0, 50));
+    bounds1 = Bounds2D.create(Bounds.of(0, 30), Bounds.of(60, 80));
+    assertFalse(bounds0.intersects(bounds1) && bounds1.intersects(bounds0));
+
+    // y fails low
+    bounds0 = Bounds2D.create(Bounds.of(10, 20), Bounds.of(0, 50));
+    bounds1 = Bounds2D.create(Bounds.of(0, 30), Bounds.of(-20, -2));
     assertFalse(bounds0.intersects(bounds1) && bounds1.intersects(bounds0));
   }
 
@@ -681,6 +803,68 @@ public class Bounds2DTest {
   public void ratioXYInvalidBounds() {
     Bounds2D bounds = invalidMock();
     assertTrue(Dval.isDval(bounds.ratioXY()));
+  }
+
+  @Test
+  public void setXValues() {
+    Bounds2D bounds = validMock();
+    bounds.setXValues(3, 44);
+    assertEquals(3, bounds.getMinX(), 1e-10);
+    assertEquals(44, bounds.getMaxX(), 1e-10);
+  }
+
+  @Test
+  public void setXValuesSame() {
+    Bounds2D bounds = validMock();
+    bounds.setXValues(50, 50);
+    assertEquals(50, bounds.getMinX(), 1e-10);
+    assertEquals(50, bounds.getMaxX(), 1e-10);
+  }
+
+  @Test
+  public void setXValuesInvalid() {
+    Bounds2D bounds = validMock();
+    bounds.setXValues(Double.NaN, 5);
+    // nothing should change
+    assertEquals(0, bounds.getMinX(), 1e-10);
+    assertEquals(100, bounds.getMaxX(), 1e-10);
+
+    bounds = validMock();
+    bounds.setXValues(3, Dval.DVAL_DOUBLE);
+    // nothing should change
+    assertEquals(0, bounds.getMinX(), 1e-10);
+    assertEquals(100, bounds.getMaxX(), 1e-10);
+  }
+
+  @Test
+  public void setYValues() {
+    Bounds2D bounds = validMock();
+    bounds.setYValues(3, 44);
+    assertEquals(3, bounds.getMinY(), 1e-10);
+    assertEquals(44, bounds.getMaxY(), 1e-10);
+  }
+
+  @Test
+  public void setYValuesSame() {
+    Bounds2D bounds = validMock();
+    bounds.setYValues(50, 50);
+    assertEquals(50, bounds.getMinY(), 1e-10);
+    assertEquals(50, bounds.getMaxY(), 1e-10);
+  }
+
+  @Test
+  public void setYValuesInvalid() {
+    Bounds2D bounds = validMock();
+    bounds.setYValues(Double.NaN, 5);
+    // nothing should change
+    assertEquals(20, bounds.getMinY(), 1e-10);
+    assertEquals(80, bounds.getMaxY(), 1e-10);
+
+    bounds = validMock();
+    bounds.setYValues(3, Dval.DVAL_DOUBLE);
+    // nothing should change
+    assertEquals(20, bounds.getMinY(), 1e-10);
+    assertEquals(80, bounds.getMaxY(), 1e-10);
   }
 
   @Test

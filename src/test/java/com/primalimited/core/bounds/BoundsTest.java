@@ -10,7 +10,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
@@ -51,6 +53,13 @@ public class BoundsTest {
     Bounds bounds = Bounds.of(8, 16);
     assertEquals(8, bounds.bound(2), 1e-10);
     assertEquals(16, bounds.bound(20), 1e-10);
+  }
+
+  @Test
+  public void boundIntToDoublePrecisionBoundsShouldThrow() {
+    Bounds bounds = Bounds.of(1.25, 2.50);
+    assertThrows(IllegalStateException.class,
+        () -> bounds.bound(2));
   }
 
   @Test
@@ -97,7 +106,18 @@ public class BoundsTest {
   }
 
   @Test
-  public void expand() {
+  public void expandSingleValue() {
+    Bounds unchanged = Bounds.expand(Bounds.PERCENT, Dval.DVAL_DOUBLE);
+    assertEquals(0, unchanged.getMin(), 1e-10);
+    assertEquals(100, unchanged.getMax(), 1e-10);
+
+    Bounds changed = Bounds.expand(Bounds.PERCENT, 200);
+    assertEquals(0, changed.getMin(), 1e-10);
+    assertEquals(200, changed.getMax(), 1e-10);
+  }
+  
+  @Test
+  public void expandArray() {
     Bounds orig = Bounds.of(0, 1);
     Bounds expanded = Bounds.expand(orig, new double[] { });
     assertEquals(0, expanded.getMin(), 1e-10);
@@ -500,17 +520,30 @@ public class BoundsTest {
   }
 
   @Test
-  public void mergeValid() {
-    List<Bounds> all = new ArrayList<>();
-    all.add(Bounds.of(3, 5));
-    all.add(Bounds.of(1, 2));
-    all.add(Bounds.of(4, 6));
+  public void mergeOverlapping() {
+    Set<Bounds> set = new HashSet<>();
+    set.add(Bounds.of(1, 2));
+    set.add(Bounds.of(3, 5));
+    set.add(Bounds.of(4, 6));
 
-    List<Bounds> merged = Bounds.mergeValid(all);
+    List<Bounds> merged = Bounds.mergeOverlapping(set);
     assertEquals(1, merged.get(0).getMin(), 1e-10);
     assertEquals(2, merged.get(0).getMax(), 1e-10);
     assertEquals(3, merged.get(1).getMin(), 1e-10);
     assertEquals(6, merged.get(1).getMax(), 1e-10);
+
+    set = new HashSet<>();
+    set.add(Bounds.of(8.5, 11));
+    set.add(Bounds.of(11.5, 12.25));
+    set.add(Bounds.of(12, 13.5));
+    set.add(Bounds.of(9.5, 11.5));
+    set.add(Bounds.of(14, 15));
+
+    merged = Bounds.mergeOverlapping(set);
+    assertEquals(8.5, merged.get(0).getMin(), 1e-10);
+    assertEquals(13.5, merged.get(0).getMax(), 1e-10);
+    assertEquals(14, merged.get(1).getMin(), 1e-10);
+    assertEquals(15, merged.get(1).getMax(), 1e-10);
   }
 
   @Test

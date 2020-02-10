@@ -10,6 +10,7 @@ import java.util.DoubleSummaryStatistics;
 import java.util.List;
 import java.util.Objects;
 import java.util.OptionalDouble;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.DoubleStream;
 
@@ -17,7 +18,8 @@ import com.primalimited.core.dval.Dval;
 import com.primalimited.core.math.MathUtil;
 
 /**
- * Represents two bounding values, e.g. endpoints of a horizontal or vertical line segment.
+ * Represents two bounding values, e.g. end points of a horizontal or vertical
+ * line segment, or the minimum and maximum values of a dataset.
  */
 public interface Bounds {
   /**
@@ -45,27 +47,36 @@ public interface Bounds {
    */
   public default String boundsText() {
     NumberFormat nf = NumberFormat.getInstance();
-    String minText = format(nf, getMin()); 
-    String maxText = format(nf, getMax()); 
-    return "[" + minText + ".." + maxText + "]";
+    return "[" 
+        + format(nf, getMin()) 
+        + ".." 
+        + format(nf, getMax()) 
+        + "]";
   }
 
-  static String format(NumberFormat nf, double value) {
-    Objects.requireNonNull(nf);
-    String text =
-        Double.isNaN(value) ? "NaN"
-        : Double.isInfinite(value) ? "Infinity"
-        : Dval.isDval(value) ? "Dval" 
-        : nf.format(value);
-    return text;
+  /**
+   * Build formatted text representing this bounds.
+   * 
+   * @return formatted text representing this bounds.
+   */
+  public default String format() {
+    NumberFormat nf = NumberFormat.getInstance();
+    return String.format(
+      "min=%s max=%s range=%s",
+      format(nf, getMin()),
+      format(nf, getMax()),
+      format(nf, getRange())
+    );
   }
 
   /**
    * Throws IllegalArgumentException if either argument is invalid, or if
-   * min > max.
+   * min &gt; max.
    * 
    * @param min min value 
    * @param max max value
+   * @throws IllegalArgumentException if min or max is invalid, or if
+   * min &gt; max.
    */
   public default void validateArguments(double min, double max) {
     if (!Dval.isValid.test(min))
@@ -85,10 +96,10 @@ public interface Bounds {
   }
 
   /**
-   * Return true if bounds are valid AND min value is > 0,
+   * Return true if bounds are valid AND min value is &gt; 0,
    * false otherwise.
    * 
-   * @return true if bounds are valid AND min value is > 0,
+   * @return true if bounds are valid AND min value is &gt; 0,
    * false otherwise.
    */
   public default boolean isValidForLogScale() {
@@ -123,6 +134,117 @@ public interface Bounds {
         || (getMax() >= other.getMin() && getMax() <= other.getMax())
         || (other.getMin() >= getMin() && other.getMin() <= getMax())
         || (other.getMax() >= getMin() && other.getMax() <= getMax());
+  }
+
+  /**
+   * Determine a discrete bin number for a value, given nBins for range; useful for
+   * histograms, color scales, value windows, etc.
+   *
+   * @param value value
+   * @param nBins number of bins for the range
+   * @return the bin, if value is within range, -1 otherwise
+   */
+  public default int getBin(double value, int nBins) {
+    if (nBins <= 0 || Dval.isDval(nBins))
+      return -1;
+    if (value < getMin() || value > getMax())
+      return -1;
+    int bin = (int)Math.floor(getFractionBetween(value) * (nBins));
+    return Math.max(0, Math.min(nBins-1, bin));
+  }
+
+  /**
+   * Get fraction between bounds for value
+   *
+   * @param value value
+   * @return fraction between bounds endpoints, or Dval if value not within bounds
+   */
+  public default double getFractionBetween(double value) {
+    if (value < getMin() || value > getMax())
+      return Dval.DVAL_DOUBLE;
+
+    if (rangeIsZero())
+      return 0.0;
+    
+    return (value - getMin()) / getRange();
+  }
+
+  /**
+   * Returns true if this bounds represents a null bounds,
+   * false otherwise.
+   * 
+   * @return true if this bounds represents a null bounds,
+   * false otherwise.
+   */
+  public default boolean isNull() {
+    return Dval.isDval(getMin()) && Dval.isDval(getMax());
+  }
+
+  /**
+   * Returns true if this bounds represents an empty bounds,
+   * false otherwise.
+   * 
+   * @return true if this bounds represents an empty bounds,
+   * false otherwise.
+   */
+  public default boolean isEmpty() {
+    Bounds empty = empty();
+    return MathUtil.doublesEqual(getMin(), empty.getMin()) 
+        && MathUtil.doublesEqual(getMax(), empty.getMax());
+  }
+
+  /**
+   * Expand a mutable bounds to the given value.
+   * 
+   * @param value value for which to expand
+   * @throws IllegalStateException if bounds is immutable
+   */
+  public default void expandTo(@SuppressWarnings("unused") double value) {
+    throw new IllegalStateException("Bounds is immutable");
+  }
+
+  /**
+   * Returns true if this bounds contains the given value.
+   * 
+   * @param value the value to evaluate
+   * @return true if this bounds contains the given value,
+   * false otherwise.
+   */
+  public default boolean contains(double value) {
+    if (value >= getMin() && value <= getMax())
+      return true;
+    return false;
+  }
+
+  /**
+   * Bound the given value to this bounds, i.e. if the value
+   * is less than the min of the bounds, return bounds min,
+   * if the value is greater than the max of the bounds, return
+   * the bounds max, otherwise just return the value.
+   * 
+   * @param value value to bind
+   * @return bounds min if value &lt; min, bounds max if 
+   * value &gt; max, otherwise return the value argument.
+   */
+  public default double bound(double value) {
+    return Math.min(getMax(), Math.max(getMin(), value));
+  }
+
+  /**
+   * Bound an integer value to this bounds.
+   * 
+   * @param value value to bind
+   * @return bounds min if value &lt; min, bounds max if 
+   * value &gt; max, otherwise return the value argument.
+   * @throws IllegalStateException if this bounds has min or
+   * max with double precision.
+   */
+  public default int bound(int value) {
+    if (!MathUtil.doublesEqual(getMin(), Math.round(getMin()))
+        || !MathUtil.doublesEqual(getMax(), Math.round(getMax())))
+      throw new IllegalStateException("attempting to bind integer value to bounds with double precision");
+    
+    return (int)Math.min(getMax(), Math.max(getMin(), value));
   }
 
   /**
@@ -165,23 +287,68 @@ public interface Bounds {
    */
   public static final Bounds RGB_8_BIT = Bounds.of(0, 255);
 
+  /**
+   * Factory method to create bounds given two values, min and max.
+   * 
+   * @param min min value; must be finite and &lt;= max
+   * @param max max value; must be finite and &gt;= min
+   * @return new instance of a Bounds, initialized with min and max.
+   * @throws IllegalArgumentException if min or max is invalid, or if
+   * min &gt; max.
+   */
   public static Bounds of(double min, double max) {
     return immutable(min, max);
   }
 
+  /**
+   * Factory method to create immutable bounds given two values,
+   * min and max.
+   * 
+   * @param min min value; must be finite and &lt;= max
+   * @param max max value; must be finite and &gt;= min
+   * @return new instance of a Bounds, initialized with min and max.
+   * @throws IllegalArgumentException if min or max is invalid, or if
+   * min &gt; max.
+   */
   public static Bounds immutable(double min, double max) {
     return ImmutableBounds.of(min, max);
   }
 
+  /**
+   * Create an empty bounds, used to denote when something has yet
+   * to be initialized, but without resorting to null.
+   * 
+   * @return special instance of bounds that represents 
+   * uninitialized bounds.
+   */
   public static Bounds empty() {
     return EmptyBounds.create();
   }
 
+  /**
+   * Create a null bounds, used to indicate that bounds do not
+   * exist, but without resorting to null.
+   * 
+   * @return special instance of bounds that represents
+   * null bounds.
+   */
   public static Bounds nullBounds() {
     return new NullBounds();
   }
 
+  /**
+   * Given an existing bounds, return a new instance of Bounds
+   * that represents the original bounds expanded to the given 
+   * array of values, returning a new instance of Bounds.
+   * 
+   * @param original original bounds
+   * @param values array of values for which to expand
+   * @return new instance of Bounds that represents the original
+   * bounds expanded to the array of values.
+   */
   public static Bounds expand(Bounds original, double[] values) {
+    Objects.requireNonNull(original);
+    
     Bounds arrayBounds = of(values);
     if (!arrayBounds.isValid())
       return original;
@@ -192,63 +359,141 @@ public interface Bounds {
     Bounds bounds = Bounds.of(original.getMin(), original.getMax());
     for (double value : values)
       bounds = expand(bounds, value);
+
     return bounds;
   }
 
+  /**
+   * Return new instance of bounds that represents the original
+   * bounds, expanded to the given value.
+   * 
+   * @param original original bounds
+   * @param value value for which to expand
+   * @return new instance of bounds that represents the original
+   * bounds, expanded to the given value.
+   */
   public static Bounds expand(Bounds original, double value) {
+    Objects.requireNonNull(original);
+    if (!Dval.isValid.test(value))
+      return immutable(original.getMin(), original.getMax());
+
     double min = Math.min(original.getMin(), value);
     double max = Math.max(original.getMax(), value);
-    return of(min, max);
+
+    return immutable(min, max);
   }
 
+  /**
+   * Return new instance of bounds that represents the original
+   * bounds, expanded by the given percentage.
+   * 
+   * @param original original bounds
+   * @param percent the expansion percentage
+   * @return new instance of bounds that represents the original
+   * bounds, expanded by the given percentage.
+   */
   public static Bounds expandByPercent(Bounds original, double percent) {
     if (!Bounds.PERCENT.contains(Math.abs(percent)))
-      return original;
+      return immutable(original.getMin(), original.getMax());
 
     double fraction = percent / 100.0;
+    // add half of the fraction to each end of the bounds
     double halfFraction = fraction / 2.0;
     
     double min = original.getMin() - (halfFraction * original.getRange());
     double max = original.getMax() + (halfFraction * original.getRange());
-    return of(min, max);
-  }
 
-  public static Bounds of(double[] arrayParam) {
-    double[] array = Objects.requireNonNull(arrayParam, "array cannot be null");
-    if (arrayParam.length == 0)
-      return Bounds.nullBounds();
-
-    DoubleSummaryStatistics stats = Arrays.stream(array).filter(Dval.isValid).summaryStatistics();
-    double min = stats.getMin();
-    double max = stats.getMax();
-    if (!Bounds.valid(min, max))
-      return Bounds.nullBounds();
     return immutable(min, max);
   }
 
-  public static Bounds of(Collection<Double> collectionParam) {
-    Collection<Double> collection = Objects.requireNonNull(collectionParam);
-    if (collection.size() == 0)
-      return new NullBounds();
-    DoubleSummaryStatistics stats = collection.stream()
-      .filter(Dval.VALID_DOUBLE_BOXED)
-      .mapToDouble(d -> d.doubleValue())
-      .summaryStatistics();
-    return ImmutableBounds.of(stats.getMin(), stats.getMax());
+  /**
+   * Create new instance of Bounds that represents the minimum and
+   * maximum valid values from the given array.
+   * 
+   * @param array array of values
+   * @return new instance of Bounds that represents the minimum and
+   * maximum valid values from the given array.
+   */
+  public static Bounds of(double[] array) {
+    if (array == null || array.length == 0)
+      return Bounds.nullBounds();
+
+    DoubleSummaryStatistics stats = Arrays
+        .stream(array)
+        .filter(Dval.isValid)
+        .summaryStatistics();
+
+    return createFromStats(stats);
   }
 
+  /**
+   * Create new instance of Bounds that represents the minimum and
+   * maximum valid values from the given collection of doubles.
+   * 
+   * @param collection collection of doubles
+   * @return new instance of Bounds that represents the minimum and
+   * maximum valid values from the given collection of doubles.
+   */
+  public static Bounds of(Collection<Double> collection) {
+    if (collection == null || collection.size() == 0)
+      return new NullBounds();
+
+    DoubleSummaryStatistics stats = collection
+        .stream()
+        .filter(Dval.VALID_DOUBLE_BOXED)
+        .mapToDouble(d -> d.doubleValue())
+        .summaryStatistics();
+
+    return createFromStats(stats);
+  }
+
+  static Bounds createFromStats(DoubleSummaryStatistics stats) {
+    Objects.requireNonNull(stats);
+    
+    double min = stats.getMin();
+    double max = stats.getMax();
+
+    if (!Bounds.valid(min, max))
+      return Bounds.nullBounds();
+    
+    return immutable(min, max);
+  }
+
+  /**
+   * Create new instance of Bounds that represents the minimum and
+   * maximum of the given bounds arguments.
+   * 
+   * @param bounds0 bounds argument
+   * @param bounds1 bounds argument
+   * @return new instance of Bounds that represents the minimum and
+   * maximum of the given bounds arguments.
+   * @throws IllegalArgumentException if either bounds argument is invalid
+   */
   public static Bounds minMax(Bounds bounds0, Bounds bounds1) {
     Objects.requireNonNull(bounds0);
     Objects.requireNonNull(bounds1);
+
     if (!bounds0.isValid())
       throw new IllegalArgumentException("bounds0 is invalid:" + bounds0.format());
+    
     if (!bounds1.isValid())
       throw new IllegalArgumentException("bounds1 is invalid:" + bounds1.format());
-    return Bounds.of(Math.min(bounds0.getMin(), bounds1.getMin()), Math.max(bounds0.getMax(), bounds1.getMax()));
+    
+    return immutable(Math.min(bounds0.getMin(), bounds1.getMin()), Math.max(bounds0.getMax(), bounds1.getMax()));
   }
-  
+
+  static String format(NumberFormat nf, double value) {
+    Objects.requireNonNull(nf);
+    String text =
+        Double.isNaN(value) ? "NaN"
+        : Double.isInfinite(value) ? "Infinity"
+        : Dval.isDval(value) ? "Dval" 
+        : nf.format(value);
+    return text;
+  }
+
   /**
-   * Return true if both arguments constitute a valid Bounds: min <= max,
+   * Return true if both arguments constitute a valid Bounds: min &lt;= max,
    * and both min and max are finite and non-dval.
    * 
    * @param min min value
@@ -298,11 +543,20 @@ public interface Bounds {
     return true;
   }
 
-  public static List<Bounds> mergeValid(List<Bounds> all) {
-    Objects.requireNonNull(all);
+  /**
+   * Merge any overlapping bounds in the given set of bounds. For example,
+   * the members of the bounds set may represent meeting begin and end
+   * times.  This function will merge any overlapping meetings in order to
+   * show when the conference room is booked. 
+   * 
+   * @param set set of bounds
+   * @return merged list of overlapping bounds.
+   */
+  public static List<Bounds> mergeOverlapping(Set<Bounds> set) {
+    Objects.requireNonNull(set);
 
     /* create copy of list as mutable bounds */
-    List<MutableBounds> sorted = all.stream()
+    List<MutableBounds> sorted = set.stream()
         .filter(b -> b.isValid())
         .map(b -> MutableBounds.of(b.getMin(), b.getMax()))
         .collect(Collectors.toList());
@@ -331,69 +585,5 @@ public interface Bounds {
     return merged.stream()
         .map(b -> immutable(b.getMin(), b.getMax()))
         .collect(Collectors.toList());
-  }
-
-  /**
-   * Determine a discrete bin number for a value, given nBins for range; useful for
-   * histograms, color scales, value windows, etc.
-   *
-   * @param value value
-   * @param nBins number of bins for the range
-   * @return the bin, if value is within range, -1 otherwise
-   */
-  public default int getBin(double value, int nBins) {
-    if (nBins <= 0 || Dval.isDval(nBins))
-      return -1;
-    if (value < getMin() || value > getMax())
-      return -1;
-    int bin = (int)Math.floor(getFractionBetween(value) * (nBins));
-    return Math.max(0, Math.min(nBins-1, bin));
-  }
-
-  /**
-   * Get fraction between bounds for value
-   *
-   * @param value value
-   * @return fraction between bounds endpoints, or Dval if value not within bounds
-   */
-  public default double getFractionBetween(double value) {
-    if (value < getMin() || value > getMax())
-      return Dval.DVAL_DOUBLE;
-
-    if (rangeIsZero())
-      return 0.0;
-    
-    return (value - getMin()) / getRange();
-  }
-
-  public default String format() {
-    return String.format(
-      "min=%s max=%s range=%s",
-      Dval.isDval(getMin()) ? "Dval" : String.format("%10.3f", getMin()),
-      Dval.isDval(getMax()) ? "Dval" : String.format("%10.3f", getMax()),
-      Dval.isDval(getRange()) ? "Dval" : String.format("%10.3f", getRange())
-    );
-  }
-
-  public default boolean isNull() {
-    return Dval.isDval(getMin()) && Dval.isDval(getMax());
-  }
-
-  public default void expandTo(@SuppressWarnings("unused") double value) {
-    throw new IllegalStateException("Bounds is immutable");
-  }
-
-  public default boolean contains(double value) {
-    if (value >= getMin() && value <= getMax())
-      return true;
-    return false;
-  }
-
-  public default double bound(double value) {
-    return Math.min(getMax(), Math.max(getMin(), value));
-  }
-  
-  public default int bound(int value) {
-    return (int)Math.min(getMax(), Math.max(getMin(), value));
   }
 }
