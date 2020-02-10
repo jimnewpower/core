@@ -1,6 +1,5 @@
 package com.primalimited.core.dval;
 
-
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -10,8 +9,22 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.Test;
 
-
 public class DvalTest {
+  @Test
+  public void predicates() {
+    assertTrue(Dval.isValid.test(Math.random()));
+    assertFalse(Dval.isValid.test(Dval.DVAL_DOUBLE));
+    assertFalse(Dval.isValid.test(Double.NaN));
+    assertFalse(Dval.isValid.test(Double.POSITIVE_INFINITY));
+    assertFalse(Dval.isValid.test(Double.NEGATIVE_INFINITY));
+
+    assertTrue(Dval.VALID_DOUBLE_BOXED.test(Double.valueOf(Math.random())));
+    assertFalse(Dval.VALID_DOUBLE_BOXED.test(Double.valueOf(Dval.DVAL_DOUBLE)));
+    assertFalse(Dval.VALID_DOUBLE_BOXED.test(Double.valueOf(Double.NaN)));
+    assertFalse(Dval.VALID_DOUBLE_BOXED.test(Double.valueOf(Double.POSITIVE_INFINITY)));
+    assertFalse(Dval.VALID_DOUBLE_BOXED.test(Double.valueOf(Double.NEGATIVE_INFINITY)));
+  }
+  
   @Test public void testDouble() {
     double dval = Dval.DVAL_DOUBLE;
     assertTrue(Dval.isDval(Double.valueOf(dval)));

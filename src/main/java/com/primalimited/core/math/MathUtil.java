@@ -1,46 +1,42 @@
 package com.primalimited.core.math;
 
-public class MathUtil {
-  static final double DEFAULT_EPSILON = 1e-12;
+import com.primalimited.core.bounds.Bounds;
+import com.primalimited.core.dval.Dval;
 
-  public static boolean floatsEqual(float a, float b, float epsilon) {
-    final float absA = Math.abs(a);
-    final float absB = Math.abs(b);
-    final float diff = Math.abs(a - b);
+public final class MathUtil {
+  public static boolean floatsEqual(float a, float b) {
+    if (Float.isNaN(a) || Float.isNaN(b))
+      return false;
 
-    if (a == b) { // shortcut, handles infinities
+    if (Dval.isDval(a) && Dval.isDval(b))
       return true;
-    } else if (a == 0f || b == 0f || (absA + absB < Float.MIN_NORMAL)) {
-      // a or b is zero or both are extremely close to it
-      // relative error is less meaningful here
-      return diff < (epsilon * Float.MIN_NORMAL);
-    } else { // use relative error
-      return diff / Math.min((absA + absB), Float.MAX_VALUE) < epsilon;
-    }
+
+    if (Dval.isDval(a) || Dval.isDval(b))
+      return false;
+
+    if (a == b) // shortcut, handles infinities
+      return true;
+
+    return
+        Bounds.of(Math.nextDown(a), Math.nextUp(a)).contains(b)
+        && Bounds.of(Math.nextDown(b), Math.nextUp(b)).contains(a);
   }
 
   public static boolean doublesEqual(double a, double b) {
-    return doublesEqual(a, b, DEFAULT_EPSILON);
-  }
-  
-  public static boolean doublesEqual(double a, double b, double epsilon) {
-    if (Double.isNaN(a))
-      throw new IllegalArgumentException("a is not a number (NaN)");
-    if (Double.isNaN(b))
-      throw new IllegalArgumentException("b is not a number (NaN)");
+    if (Double.isNaN(a) || Double.isNaN(b))
+      return false;
     
-    final double absA = Math.abs(a);
-    final double absB = Math.abs(b);
-    final double diff = Math.abs(a - b);
-
-    if (a == b) { // shortcut, handles infinities
+    if (Dval.isDval(a) && Dval.isDval(b))
       return true;
-    } else if (a == 0 || b == 0 || (absA + absB < Double.MIN_NORMAL)) {
-      // a or b is zero or both are extremely close to it
-      // relative error is less meaningful here
-      return diff < (epsilon * Double.MIN_NORMAL);
-    } else { // use relative error
-      return diff / Math.min((absA + absB), Double.MAX_VALUE) < epsilon;
-    }
+
+    if (Dval.isDval(a) || Dval.isDval(b))
+      return false;
+
+    if (a == b) // shortcut, handles infinities
+      return true;
+    
+    return
+        Bounds.of(Math.nextDown(a), Math.nextUp(a)).contains(b)
+        && Bounds.of(Math.nextDown(b), Math.nextUp(b)).contains(a);
   }
 }

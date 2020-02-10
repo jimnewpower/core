@@ -60,12 +60,24 @@ public interface Bounds {
    * @return formatted text representing this bounds.
    */
   public default String format() {
-    NumberFormat nf = NumberFormat.getInstance();
+    return format(NumberFormat.getInstance());
+  }
+
+  public default String format(NumberFormat nf) {
     return String.format(
       "min=%s max=%s range=%s",
       format(nf, getMin()),
       format(nf, getMax()),
       format(nf, getRange())
+    );
+  }
+
+  public default String format(String format) {
+    return String.format(
+      "min=%s max=%s range=%s",
+      format(format, getMin()),
+      format(format, getMax()),
+      format(format, getRange())
     );
   }
 
@@ -489,6 +501,16 @@ public interface Bounds {
         : Double.isInfinite(value) ? "Infinity"
         : Dval.isDval(value) ? "Dval" 
         : nf.format(value);
+    return text;
+  }
+
+  static String format(String format, double value) {
+    Objects.requireNonNull(format);
+    String text =
+        Double.isNaN(value) ? "NaN"
+        : Double.isInfinite(value) ? "Infinity"
+        : Dval.isDval(value) ? "Dval" 
+        : String.format(format, value);
     return text;
   }
 

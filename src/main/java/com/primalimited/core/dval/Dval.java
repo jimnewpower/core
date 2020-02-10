@@ -6,8 +6,8 @@ import java.util.function.DoublePredicate;
 import java.util.function.Predicate;
 
 public class Dval {
-  public static final double DVAL_DOUBLE = Double.MAX_VALUE;
-  public static final float DVAL_FLOAT = Float.MAX_VALUE;
+  public static final double DVAL_DOUBLE = 3.4E+76;
+  public static final float DVAL_FLOAT = 3.4E+38f;
   public static final int DVAL_INT = Integer.MAX_VALUE;
   public static final long DVAL_LONG = Long.MAX_VALUE;
   public static final byte DVAL_BYTE = Byte.MIN_VALUE;
@@ -33,25 +33,25 @@ public class Dval {
    * @return true if num &gt;= DVAL_DOUBLE, false otherwise.
    */
   public static boolean isDval(Double num) {
-    return num.doubleValue() >= DVAL_DOUBLE;
+    return Double.compare(Dval.DVAL_DOUBLE, num.doubleValue()) == 0;
   }
 
   /**
    * Determine if <code>double</code> is a Dval.
    *
-   * @return true if num &gt;= DVAL_DOUBLE, false otherwise.
+   * @return true if num == DVAL_DOUBLE, false otherwise.
    */
   public static boolean isDval(double num) {
-    return num >= DVAL_DOUBLE;
+    return Double.compare(Dval.DVAL_DOUBLE, num) == 0;
   }
 
   /**
    * Determine if <code>Float</code> is a Dval.
    *
-   * @return true if num &gt;= DVAL_FLOAT, false otherwise.
+   * @return true if num == DVAL_FLOAT, false otherwise.
    */
   public static boolean isDval(Float num) {
-    return num.floatValue() >= DVAL_FLOAT;
+    return Float.compare(num, DVAL_FLOAT) == 0;
   }
   
   /**
@@ -60,7 +60,7 @@ public class Dval {
    * @return true if num &gt;= DVAL_FLOAT, false otherwise.
    */
   public static boolean isDval(float num) {
-    return num >= DVAL_FLOAT;
+    return Float.compare(num, DVAL_FLOAT) == 0;
   }
 
   public static boolean isDval(byte num) {

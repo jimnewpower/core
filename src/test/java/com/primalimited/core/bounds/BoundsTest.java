@@ -571,11 +571,39 @@ public class BoundsTest {
   }
 
   @Test
-  public void format() {
+  public void formatWithNumberFormat() {
     NumberFormat nf = NumberFormat.getInstance();
     assertEquals("-684.25", Bounds.format(nf, -684.25));
     assertEquals("0", Bounds.format(nf, 0));
     assertEquals("42.01", Bounds.format(nf, 42.01));
+
+    String expected = "min=0 max=255 range=255";
+    String actual = Bounds.RGB_8_BIT.format(nf);
+    assertEquals(expected, actual);
+  }
+
+  @Test
+  public void formatWithStringFormat() {
+    String format = "%.2f";
+    
+    double value = -684.25;
+    String expected = "-684.25";
+    String actual = Bounds.format(format, value);
+    assertEquals(expected, actual);
+    
+    value = 0;
+    expected = "0.00";
+    actual = Bounds.format(format, value);
+    assertEquals(expected, actual);
+
+    value = 42.01;
+    expected = "42.01";
+    actual = Bounds.format(format, value);
+    assertEquals(expected, actual);
+    
+    expected = "min=0.00000 max=255.000 range=255.000";
+    actual = Bounds.RGB_8_BIT.format("%g");
+    assertEquals(expected, actual);
   }
 
   @Test
