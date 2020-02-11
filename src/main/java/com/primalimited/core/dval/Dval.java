@@ -12,11 +12,11 @@ public class Dval {
   public static final long DVAL_LONG = Long.MAX_VALUE;
   public static final byte DVAL_BYTE = Byte.MIN_VALUE;
 
-  private static final DoublePredicate isDVAL = (d) -> Dval.isDval(d);
+  private static final DoublePredicate isDVALPredicate = (d) -> Dval.isDval(d);
   private static final DoublePredicate isNaN = (d) -> Double.isNaN(d);
   private static final DoublePredicate isInfinite = (d) -> Double.isInfinite(d);
   public static final DoublePredicate isValid = (d) -> 
-      isDVAL.negate().test(d) && isNaN.negate().test(d) && isInfinite.negate().test(d);
+    isDVALPredicate.negate().test(d) && isNaN.negate().test(d) && isInfinite.negate().test(d);
   public static final Predicate<Double> VALID_DOUBLE_BOXED = p -> 
       (!Dval.isDval(p.doubleValue()) && !Double.isNaN(p.doubleValue()) && !Double.isInfinite(p.doubleValue()));
 

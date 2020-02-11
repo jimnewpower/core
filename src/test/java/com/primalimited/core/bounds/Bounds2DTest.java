@@ -39,7 +39,7 @@ public class Bounds2DTest {
   @Test
   public void getXBounds() {
     Bounds2D bounds = Bounds2D.from(validMock());
-    Bounds x = bounds.xBounds();
+    Bounds x = bounds.getXBounds();
     double delta = 1e-10;
     assertEquals(0, x.getMin(), delta);
     assertEquals(100, x.getMax(), delta);
@@ -48,14 +48,14 @@ public class Bounds2DTest {
   @Test
   public void getXBoundsInvalid() {
     Bounds2D bounds = Bounds2D.from(invalidMock());
-    Bounds x = bounds.xBounds();
+    Bounds x = bounds.getXBounds();
     assertFalse(x.isValid());
   }
 
   @Test
   public void getYBounds() {
     Bounds2D bounds = Bounds2D.from(validMock());
-    Bounds y = bounds.yBounds();
+    Bounds y = bounds.getYBounds();
     double delta = 1e-10;
     assertEquals(20, y.getMin(), delta);
     assertEquals(80, y.getMax(), delta);
@@ -76,7 +76,7 @@ public class Bounds2DTest {
   @Test
   public void getYBoundsInvalid() {
     Bounds2D bounds = Bounds2D.from(invalidMock());
-    Bounds y = bounds.yBounds();
+    Bounds y = bounds.getYBounds();
     assertFalse(y.isValid());
   }
 
@@ -365,25 +365,25 @@ public class Bounds2DTest {
 
   @Test
   public void xOverlapsMinButDoesNotContain() {
-    Bounds2D left = Bounds2D.create(Bounds.of(-1, 1), validMock().yBounds());
+    Bounds2D left = Bounds2D.create(Bounds.of(-1, 1), validMock().getYBounds());
     assertFalse(validMock().contains(left));
   }
 
   @Test
   public void xOverlapsMaxButDoesNotContain() {
-    Bounds2D right = Bounds2D.create(Bounds.of(99, 101), validMock().yBounds());
+    Bounds2D right = Bounds2D.create(Bounds.of(99, 101), validMock().getYBounds());
     assertFalse(validMock().contains(right));
   }
 
   @Test
   public void yOverlapsMinButDoesNotContain() {
-    Bounds2D bounds = Bounds2D.create(validMock().xBounds(), Bounds.of(19, 21));
+    Bounds2D bounds = Bounds2D.create(validMock().getXBounds(), Bounds.of(19, 21));
     assertFalse(validMock().contains(bounds));
   }
 
   @Test
   public void yOverlapsMaxButDoesNotContain() {
-    Bounds2D bounds = Bounds2D.create(validMock().xBounds(), Bounds.of(79, 81));
+    Bounds2D bounds = Bounds2D.create(validMock().getXBounds(), Bounds.of(79, 81));
     assertFalse(validMock().contains(bounds));
   }
 

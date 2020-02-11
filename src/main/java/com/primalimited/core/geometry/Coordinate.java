@@ -7,10 +7,10 @@ import com.primalimited.core.dval.Dval;
 /**
  * Immutable spatial coordinate that supports a z value
  */
-public class Coordinate {
-  public final double x;
-  public final double y;
-  public final double z;
+public final class Coordinate {
+  public transient final double x;
+  public transient final double y;
+  public transient final double z;
   
   public static Coordinate of(double x, double y) {
     return new Coordinate(x, y);

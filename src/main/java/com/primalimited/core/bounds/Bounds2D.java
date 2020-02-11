@@ -13,8 +13,8 @@ import com.primalimited.core.geometry.Coordinate;
  */
 public class Bounds2D {
   /* instance variables */
-  protected Bounds xBounds = Bounds.empty();
-  protected Bounds yBounds = Bounds.empty();
+  private transient Bounds xBounds = Bounds.empty();
+  private transient Bounds yBounds = Bounds.empty();
 
   public static Bounds2D empty() {
     return new Bounds2D();
@@ -403,13 +403,13 @@ public class Bounds2D {
     return true;
   }
 
-  public Bounds xBounds() {
+  public Bounds getXBounds() {
     if (!this.xBounds.isValid())
       return this.xBounds;
     return Bounds.immutable(this.xBounds.getMin(), this.xBounds.getMax());
   }
 
-  public Bounds yBounds() {
+  public Bounds getYBounds() {
     if (!this.yBounds.isValid())
       return this.yBounds;
     return Bounds.immutable(this.yBounds.getMin(), this.yBounds.getMax());

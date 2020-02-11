@@ -357,14 +357,14 @@ public interface Bounds {
    * array of values, returning a new instance of Bounds.
    * 
    * @param original original bounds
-   * @param values array of values for which to expand
+   * @param array array of values for which to expand
    * @return new instance of Bounds that represents the original
    * bounds expanded to the array of values.
    */
-  public static Bounds expand(Bounds original, double[] values) {
+  public static Bounds expand(Bounds original, double[] array) {
     Objects.requireNonNull(original);
     
-    Bounds arrayBounds = of(values);
+    Bounds arrayBounds = of(array);
     if (!arrayBounds.isValid())
       return original;
 
@@ -372,8 +372,10 @@ public interface Bounds {
       return arrayBounds;
 
     Bounds bounds = Bounds.of(original.getMin(), original.getMax());
-    for (double value : values)
-      bounds = expand(bounds, value);
+    DoubleSummaryStatistics stats = 
+        Arrays.stream(array).filter(Dval.isValid).summaryStatistics();
+    bounds = expand(bounds, stats.getMin());
+    bounds = expand(bounds, stats.getMax());
 
     return bounds;
   }

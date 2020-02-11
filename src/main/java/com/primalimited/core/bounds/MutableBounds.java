@@ -3,9 +3,9 @@ package com.primalimited.core.bounds;
 /**
  * Mutable bounds
  */
-class MutableBounds implements Bounds, BoundsMutator {
-  private double min;
-  private double max;
+final class MutableBounds implements Bounds, BoundsMutator {
+  private transient double min;
+  private transient double max;
 
   static MutableBounds of(double min, double max) {
     return new MutableBounds(min, max);

@@ -58,10 +58,10 @@ public class MathUtilTest {
       double a = aa * Math.pow(10, exp);
 
       double b = a + (Math.ulp(a) / 2.0);
-      assertTrue(MathUtil.doublesEqual(a, b), () -> "a=" + a + " b=" + b + " ulp=" + Math.ulp(a));
+      assertTrue(MathUtil.doublesEqual(a, b), () -> generateMessageTextWithUlp(a, b));
       
       double c = a - (Math.ulp(a) / 2.0);
-      assertTrue(MathUtil.doublesEqual(a, c), () -> "a=" + a + " c=" + c + " ulp=" + Math.ulp(a));
+      assertTrue(MathUtil.doublesEqual(a, c), () -> generateMessageTextWithUlp(a, c));
       
       exp++;
     }
@@ -85,10 +85,10 @@ public class MathUtilTest {
       float a = aa * (float)Math.pow(10, exp);
       
       float b = a + (Math.ulp(a) / 2.f);
-      assertTrue(MathUtil.floatsEqual(a, b), () -> "a=" + a + " b=" + b + " ulp=" + Math.ulp(a));
+      assertTrue(MathUtil.floatsEqual(a, b), () -> generateMessageTextWithUlp(a, b));
       
       float c = a - (Math.ulp(a) / 2.f);
-      assertTrue(MathUtil.floatsEqual(a, c), () -> "a=" + a + " c=" + c + " ulp=" + Math.ulp(a));
+      assertTrue(MathUtil.floatsEqual(a, c), () -> generateMessageTextWithUlp(a, c));
       
       exp++;
     }
@@ -98,7 +98,15 @@ public class MathUtilTest {
   public void pi() {
     double a = Math.PI;
     double b = a;
-    assertTrue(MathUtil.doublesEqual(a, b), () -> "a=" + a + " b=" + b + " ulp=" + Math.ulp(a));
+    assertTrue(MathUtil.doublesEqual(a, b), () -> generateMessageTextWithUlp(a, b));
+  }
+
+  private static String generateMessageTextWithUlp(float a, float b) {
+    return String.format("a=%g b=%g ulp=%g", a, b, Math.ulp(a));
+  }
+
+  private static String generateMessageTextWithUlp(double a, double b) {
+    return String.format("a=%g b=%g ulp=%g", a, b, Math.ulp(a));
   }
 
   @Test
