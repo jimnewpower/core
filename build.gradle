@@ -11,6 +11,7 @@ plugins {
     // Apply the java-library plugin to add support for Java Library
     id 'java-library'
     id 'jacoco'
+    id 'pmd'
 }
 
 repositories {
@@ -29,6 +30,10 @@ dependencies {
     // Use JUnit test framework
 	testImplementation('org.junit.jupiter:junit-jupiter:5.6.0')
 	testImplementation 'org.hamcrest:hamcrest:2.2'
+}
+
+pmd {
+	rulePriority = 4
 }
 
 jacoco {
@@ -70,4 +75,5 @@ jacocoTestCoverageVerification {
 test {
 	useJUnitPlatform()
 }
+
 
