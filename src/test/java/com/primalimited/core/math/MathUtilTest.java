@@ -1,95 +1,86 @@
 package com.primalimited.core.math;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
 import com.primalimited.core.dval.Dval;
 
 public class MathUtilTest {
-  private static final int N_RANDOM_TESTS = 10000;
-  
-  @Test
-  public void floats() {
-    float a = 7.943681E-7f;
-    float b = 7.94368E-7f;
-    assertTrue(MathUtil.floatsEqual(a, b));
-    
-    a = 902.6224f;
-    b = 902.6223f;
-    assertTrue(MathUtil.floatsEqual(a, b));
-  }
-  
-  @Test
-  public void doubles() {
-    double a = -1.9848080436844008E242;
-    double b = -1.9848080436844006E242;
-    assertTrue(MathUtil.doublesEqual(a, b));
-    
-    a = -198.48080436844006;
-    b = -198.48080436844003;
-    assertTrue(MathUtil.doublesEqual(a, b));
-    
-    a = -3.6892123150172095E-9;
-    b = -3.68921231501721E-9;
-    assertTrue(MathUtil.doublesEqual(a, b));
-    
-    a = 93.753758280853;
-    b = 93.75375828085299;
-    assertTrue(MathUtil.doublesEqual(a, b));
-  }
-  
-  @Test
-  public void randomPositiveValuesWithUlps() {
-    for (int test = 0; test < N_RANDOM_TESTS; test++)
-      ulpTest(Math.random());
-  }
+  private static final int N_RANDOM_TESTS = 100;
+  private static final int FLOAT_EXPONENT_MIN = -36;
+  private static final int FLOAT_EXPONENT_MAX = 36;
+  private static final int FLOAT_LARGE_ULPS_EXPONENT = 8;
+  private static final int DOUBLE_EXPONENT_MIN = -300;
+  private static final int DOUBLE_EXPONENT_MAX = 300;
+  private static final int DOUBLE_LARGE_ULPS_EXPONENT = 17;
 
   @Test
-  public void randomNegativeValuesWithUlps() {
-    for (int test = 0; test < N_RANDOM_TESTS; test++)
-      ulpTest(-Math.random());
+  public void utilityClassConstructor() {
+    // for code coverage
+    assertThrows(IllegalStateException.class,
+        () -> new MathUtil());
+    
   }
-
-  private void ulpTest(double aa) {
-    int exp = -300;//Double.MIN_EXPONENT+1;
-    while (exp < 300/* Double.MAX_EXPONENT-1 */) {
+  @Test
+  public void bigUlps() {
+    int exp = DOUBLE_LARGE_ULPS_EXPONENT;
+    double aa = 1.0;
+    while (exp < DOUBLE_EXPONENT_MAX) {
       double a = aa * Math.pow(10, exp);
-
-      double b = a + (Math.ulp(a) / 2.0);
-      assertTrue(MathUtil.doublesEqual(a, b), () -> generateMessageTextWithUlp(a, b));
-      
-      double c = a - (Math.ulp(a) / 2.0);
-      assertTrue(MathUtil.doublesEqual(a, c), () -> generateMessageTextWithUlp(a, c));
-      
+      double ulp = Math.ulp(a);
+      assertTrue(MathUtil.doublesEqual(a, a + ulp));
+      assertTrue(MathUtil.doublesEqual(a, a - ulp));
       exp++;
     }
   }
 
   @Test
-  public void randomPositiveFloatValuesWithUlps() {
-    for (int test = 0; test < N_RANDOM_TESTS; test++)
-      ulpTest(Double.valueOf(Math.random()).floatValue());
+  public void bigUlpsFloat() {
+    int exp = FLOAT_LARGE_ULPS_EXPONENT;
+    float aa = 1.f;
+    while (exp < FLOAT_EXPONENT_MAX) {
+      float a = aa * (float)Math.pow(10, exp);
+      float ulp = Math.ulp(a);
+      assertTrue(MathUtil.floatsEqual(a, a + ulp));
+      assertTrue(MathUtil.floatsEqual(a, a - ulp));
+      exp++;
+    }
   }
 
-  @Test
-  public void randomNegativeFloatValuesWithUlps() {
-    for (int test = 0; test < N_RANDOM_TESTS; test++)
-      ulpTest(Double.valueOf(-Math.random()).floatValue());
+  @RepeatedTest(N_RANDOM_TESTS)
+  public void randomValuesWithUlps() {
+    ulpTest(Math.random());
+    ulpTest(-Math.random());
+  }
+
+  @RepeatedTest(N_RANDOM_TESTS)
+  public void randomFloatValuesWithUlps() {
+    ulpTest(Double.valueOf(Math.random()).floatValue());
+    ulpTest(Double.valueOf(-Math.random()).floatValue());
+  }
+
+  private void ulpTest(double aa) {
+    int exp = DOUBLE_EXPONENT_MIN;
+    while (exp < DOUBLE_EXPONENT_MAX) {
+      double a = aa * Math.pow(10, exp);
+      double ulp = Math.ulp(a);
+      assertTrue(MathUtil.doublesEqual(a, a + ulp), () -> generateMessageTextWithUlp(a, a + ulp));
+      assertTrue(MathUtil.doublesEqual(a, a - ulp), () -> generateMessageTextWithUlp(a, a - ulp));
+      exp++;
+    }
   }
 
   private void ulpTest(float aa) {
-    int exp = -36;//Float.MIN_EXPONENT;
-    while (exp < 36/* Float.MAX_EXPONENT */) {
+    int exp = -FLOAT_EXPONENT_MIN;
+    while (exp < FLOAT_EXPONENT_MAX) {
       float a = aa * (float)Math.pow(10, exp);
-      
-      float b = a + (Math.ulp(a) / 2.f);
-      assertTrue(MathUtil.floatsEqual(a, b), () -> generateMessageTextWithUlp(a, b));
-      
-      float c = a - (Math.ulp(a) / 2.f);
-      assertTrue(MathUtil.floatsEqual(a, c), () -> generateMessageTextWithUlp(a, c));
-      
+      float ulp = Math.ulp(a);
+      assertTrue(MathUtil.floatsEqual(a, a + ulp), () -> generateMessageTextWithUlp(a, a + ulp));
+      assertTrue(MathUtil.floatsEqual(a, a - ulp), () -> generateMessageTextWithUlp(a, a - ulp));
       exp++;
     }
   }
@@ -97,6 +88,13 @@ public class MathUtilTest {
   @Test
   public void pi() {
     double a = Math.PI;
+    double b = a;
+    assertTrue(MathUtil.doublesEqual(a, b), () -> generateMessageTextWithUlp(a, b));
+  }
+
+  @Test
+  public void euler() {
+    double a = Math.E;
     double b = a;
     assertTrue(MathUtil.doublesEqual(a, b), () -> generateMessageTextWithUlp(a, b));
   }
@@ -110,19 +108,24 @@ public class MathUtilTest {
   }
 
   @Test
-  public void euler() {
-    double a = Math.E;
-    double b = a;
-    assertTrue(MathUtil.doublesEqual(a, b), () -> "a=" + a + " b=" + b + " ulp=" + Math.ulp(a));
-  }
-
-  @Test
   public void infinityComparisons() {
     assertTrue(MathUtil.doublesEqual(Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY));
     assertTrue(MathUtil.doublesEqual(Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY));
+    assertFalse(MathUtil.doublesEqual(Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY));
+    assertFalse(MathUtil.doublesEqual(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY));
+    assertFalse(MathUtil.doublesEqual(0, Double.POSITIVE_INFINITY));
+    assertFalse(MathUtil.doublesEqual(Double.POSITIVE_INFINITY, 0));
+    assertFalse(MathUtil.doublesEqual(0, Double.NEGATIVE_INFINITY));
+    assertFalse(MathUtil.doublesEqual(Double.NEGATIVE_INFINITY, 0));
 
     assertTrue(MathUtil.floatsEqual(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY));
     assertTrue(MathUtil.floatsEqual(Float.NEGATIVE_INFINITY, Float.NEGATIVE_INFINITY));
+    assertFalse(MathUtil.floatsEqual(Float.NEGATIVE_INFINITY, Float.POSITIVE_INFINITY));
+    assertFalse(MathUtil.floatsEqual(Float.POSITIVE_INFINITY, Float.NEGATIVE_INFINITY));
+    assertFalse(MathUtil.floatsEqual(0, Float.NEGATIVE_INFINITY));
+    assertFalse(MathUtil.floatsEqual(0, Float.POSITIVE_INFINITY));
+    assertFalse(MathUtil.floatsEqual(Float.POSITIVE_INFINITY, 0));
+    assertFalse(MathUtil.floatsEqual(Float.NEGATIVE_INFINITY, 0));
   }
 
   @Test
@@ -153,6 +156,14 @@ public class MathUtilTest {
     double a = 0.0;
     double b = 0.0;
     assertTrue(MathUtil.doublesEqual(a, b));
+    
+    a = -0.0;
+    b = +0.0;
+    assertTrue(MathUtil.doublesEqual(a, b));
+    
+    a = +0.0;
+    b = -0.0;
+    assertTrue(MathUtil.doublesEqual(a, b));
   }
   
   @Test
@@ -160,5 +171,22 @@ public class MathUtilTest {
     float a = 0.f;
     float b = 0.f;
     assertTrue(MathUtil.floatsEqual(a, b));
+
+    a = -0.f;
+    b = +0.f;
+    assertTrue(MathUtil.floatsEqual(a, b));
+
+    a = +0.f;
+    b = -0.f;
+    assertTrue(MathUtil.floatsEqual(a, b));
+  }
+  
+  @Test
+  public void failures() {
+    assertFalse(MathUtil.doublesEqual(5, 10));
+    assertFalse(MathUtil.doublesEqual(10, 5));
+    
+    assertFalse(MathUtil.floatsEqual(5f, 10f));
+    assertFalse(MathUtil.floatsEqual(10f, 5f));
   }
 }
