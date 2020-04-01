@@ -371,11 +371,8 @@ public interface Bounds {
     if (!original.isValid())
       return arrayBounds;
 
-    Bounds bounds = Bounds.of(original.getMin(), original.getMax());
-    DoubleSummaryStatistics stats = 
-        Arrays.stream(array).filter(Dval.isValid).summaryStatistics();
-    bounds = expand(bounds, stats.getMin());
-    bounds = expand(bounds, stats.getMax());
+    Bounds bounds = expand(original, arrayBounds.getMin());
+    bounds = expand(bounds, arrayBounds.getMax());
 
     return bounds;
   }
@@ -589,12 +586,7 @@ public interface Bounds {
         .collect(Collectors.toList());
 
     /* sort copy by bounds min */
-    Collections.sort(sorted, new Comparator<Bounds>() {
-      @Override
-      public int compare(Bounds b1, Bounds b2) {
-        return Double.compare(b1.getMin(), b2.getMin());
-      }
-    });
+    Collections.sort(sorted, (b1, b2) -> Double.compare(b1.getMin(), b2.getMin()));
 
     /* merge overlapping bounds */
     List<MutableBounds> merged = new ArrayList<>();
