@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.DoubleSummaryStatistics;
 import java.util.List;
 import java.util.Objects;
@@ -214,7 +213,7 @@ public interface Bounds {
    * @param value value for which to expand
    * @throws IllegalStateException if bounds is immutable
    */
-  public default void expandTo(@SuppressWarnings("unused") double value) {
+  public default void expandTo(double value) {
     throw new IllegalStateException("Bounds is immutable");
   }
 
