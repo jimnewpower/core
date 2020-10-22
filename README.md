@@ -1,4 +1,4 @@
-![Java CI](https://github.com/jimnewpower/core/workflows/Java%20CI/badge.svg)
+[![codecov](https://codecov.io/gh/jimnewpower/core/branch/master/graph/badge.svg?token=YULIH50YWG)](undefined)
 # core
 
 ## bounds
